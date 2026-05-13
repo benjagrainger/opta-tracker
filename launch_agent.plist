@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.opta.tracker</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/benjamingrainger/Desktop/opta_tracker/run.py</string>
+        <string>scrape</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/benjamingrainger/Desktop/opta_tracker</string>
+
+    <!-- Corre a las 8am, 2pm y 8pm todos los días -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key><integer>8</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key><integer>14</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key><integer>20</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+    </array>
+
+    <!-- Si la Mac estaba dormida y se perdió una corrida, ejecutar al despertar -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/benjamingrainger/Desktop/opta_tracker/tracker.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/benjamingrainger/Desktop/opta_tracker/tracker.log</string>
+</dict>
+</plist>

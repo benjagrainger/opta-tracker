@@ -1,0 +1,68 @@
+name: Opta Tracker
+
+on:
+  schedule:
+    - cron: '0 11 * * *'   # 8am Chile (UTC-3)
+    - cron: '0 17 * * *'   # 2pm Chile
+    - cron: '0 23 * * *'   # 8pm Chile
+  workflow_dispatch:        # también se puede correr manualmente
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright openpyxl
+          playwright install chromium --with-deps
+
+      - name: Run scraper
+        run: python run.py scrape
+
+      - name: Commit updated data + dashboard
+        run: |
+          git config user.name  "Opta Tracker Bot"
+          git config user.email "bot@opta-tracker"
+          git add opta_tracker.db
+          git add docs/index.html 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "scrape $(date -u +%Y-%m-%dT%H:%M)"
+          git push
+
+  results:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 11 * * *'   # solo una vez al día
+    needs: scrape
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install playwright && playwright install chromium --with-deps
+
+      - name: Update results
+        run: python run.py results
+
+      - name: Commit results
+        run: |
+          git config user.name  "Opta Tracker Bot"
+          git config user.email "bot@opta-tracker"
+          git add opta_tracker.db
+          git diff --staged --quiet || git commit -m "results $(date -u +%Y-%m-%dT%H:%M)"
+          git push
