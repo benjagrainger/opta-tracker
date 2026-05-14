@@ -28,27 +28,62 @@ def get_events_for_date(date_str: str) -> list:
     return data.get("events", [])
 
 
-def find_event(events: list, home: str, away: str) -> dict:
-    """Fuzzy-match home/away team abbreviations to a Sofascore event."""
-    def similarity(a: str, b: str) -> float:
-        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+def find_event(events: list, home: str, away: str, comp: str = None) -> dict:
+    """Fuzzy-match home/away team abbreviations to a Sofascore event.
+    Raises the threshold and optionally filters by Opta competition code."""
+
+    # Sofascore tournament IDs for leagues Opta tracks
+    COMP_TO_TOURNAMENT = {
+        "LL":   17,    # LaLiga
+        "EPL":  17666, # Premier League
+        "BUN":  35,    # Bundesliga
+        "LI1":  34,    # Ligue 1
+        "SA":   23,    # Serie A
+        "MLS":  242,   # MLS
+        "CHA":  18,    # Championship
+        "SPL":  36,    # Scottish Premiership
+        "WSL":  316,   # WSL
+    }
+
+    def similarity(abbr: str, full: str) -> float:
+        """Compare Opta abbreviation to Sofascore team name.
+        Gives bonus if the abbreviation appears at the start of any word."""
+        a, b = abbr.lower(), full.lower()
+        base = SequenceMatcher(None, a, b).ratio()
+        # Bonus: abbr is a prefix of any word in the full name (e.g. CIN → Cincinnati)
+        words = b.replace("-", " ").split()
+        if any(w.startswith(a) for w in words):
+            base = max(base, 0.75)
+        # Bonus: abbr matches initials (e.g. LAG → LA Galaxy)
+        initials = "".join(w[0] for w in words if w)
+        if a == initials:
+            base = max(base, 0.80)
+        return base
+
+    target_tournament = COMP_TO_TOURNAMENT.get(comp) if comp else None
 
     best, best_score = None, 0.0
     for e in events:
+        # If we know the tournament, skip events from other leagues
+        if target_tournament:
+            tid = e.get("tournament", {}).get("uniqueTournament", {}).get("id")
+            if tid and tid != target_tournament:
+                continue
+
         h = e.get("homeTeam", {}).get("shortName") or e.get("homeTeam", {}).get("name", "")
         a = e.get("awayTeam", {}).get("shortName") or e.get("awayTeam", {}).get("name", "")
         score = (similarity(home, h) + similarity(away, a)) / 2
         if score > best_score:
             best_score = score
             best = e
-    return best if best_score > 0.4 else None
+
+    return best if best_score > 0.5 else None
 
 
 def get_odds(event_id: int) -> dict:
     """
-    Returns {odds_home, odds_draw, odds_away, impl_home, impl_draw, impl_away,
-             delta_home, delta_draw, delta_away} or None.
-    Requires Opta probs to compute deltas — pass them separately via compute_deltas().
+    Returns {odds_home, odds_draw, odds_away} or None.
+    Only accepts 1X2 full-time markets (3 choices: Home / Draw / Away).
     """
     try:
         time.sleep(0.5)  # be gentle
@@ -56,18 +91,45 @@ def get_odds(event_id: int) -> dict:
         featured = data.get("featured", {}).get("default")
         if not featured:
             return None
+
+        # Validate it's a 1X2 market
+        market_name = featured.get("marketName", "").lower()
+        valid_markets = ("full time", "1x2", "match result", "result", "winner", "match winner")
+        if not any(m in market_name for m in valid_markets):
+            return None
+
         choices = featured.get("choices", [])
-        if len(choices) < 3:
+        if len(choices) != 3:
             return None
 
         def frac2dec(s: str) -> float:
             n, d = s.split("/")
             return round(int(n) / int(d) + 1, 3)
 
-        oH = frac2dec(choices[0]["fractionalValue"])
-        oX = frac2dec(choices[1]["fractionalValue"])
-        oA = frac2dec(choices[2]["fractionalValue"])
-        return {"odds_home": oH, "odds_draw": oX, "odds_away": oA}
+        # Map by choice name (Home/1, Draw/X, Away/2) instead of assuming order
+        odds = {}
+        for c in choices:
+            name = c.get("name", "").strip().lower()
+            frac = c.get("fractionalValue") or c.get("initialFractionalValue")
+            if not frac:
+                continue
+            val = frac2dec(frac)
+            if name in ("1", "home", "home team", "1 (home)"):
+                odds["odds_home"] = val
+            elif name in ("x", "draw", "tie"):
+                odds["odds_draw"] = val
+            elif name in ("2", "away", "away team", "2 (away)"):
+                odds["odds_away"] = val
+
+        # Fallback to positional if names didn't match
+        if len(odds) < 3:
+            odds = {
+                "odds_home": frac2dec(choices[0]["fractionalValue"]),
+                "odds_draw": frac2dec(choices[1]["fractionalValue"]),
+                "odds_away": frac2dec(choices[2]["fractionalValue"]),
+            }
+
+        return odds if len(odds) == 3 else None
     except Exception:
         return None
 

@@ -53,7 +53,7 @@ def scrape():
                 # Find Sofascore event
                 if date_str not in sf_cache:
                     sf_cache[date_str] = get_events_for_date(date_str)
-                event = find_event(sf_cache[date_str], m["home"], m["away"])
+                event = find_event(sf_cache[date_str], m["home"], m["away"], m["comp"])
                 sf_id = event["id"] if event else None
 
                 cur = conn.execute(
