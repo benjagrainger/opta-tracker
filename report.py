@@ -1,7 +1,22 @@
 """Genera el dashboard HTML. Se llama automáticamente después de cada scrape."""
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from db import get_conn
+
+
+def utc_to_chile(time_str):
+    """Convert 'HH:MM' UTC to Chile time (UTC-3). Returns 'HH:MM' or '' if missing."""
+    if not time_str:
+        return ""
+    try:
+        h, m = map(int, time_str.split(":"))
+        t = timedelta(hours=h, minutes=m) - timedelta(hours=3)
+        total = int(t.total_seconds())
+        if total < 0:
+            total += 86400
+        return f"{total // 3600:02d}:{(total % 3600) // 60:02d}"
+    except Exception:
+        return time_str
 
 OUTPUT = Path(__file__).parent / "docs" / "index.html"
 
@@ -10,7 +25,7 @@ def load_data():
     with get_conn() as conn:
         # Current value bets: latest odds per prediction, no result yet
         value_bets = conn.execute("""
-            SELECT p.comp, p.home, p.away, p.match_date,
+            SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
                    o.fetched_at
@@ -18,13 +33,13 @@ def load_data():
             JOIN odds o ON o.prediction_id = p.id
             WHERE o.id IN (SELECT MAX(id) FROM odds GROUP BY prediction_id)
               AND p.id NOT IN (SELECT prediction_id FROM results)
-            ORDER BY p.match_date, p.home
+            ORDER BY p.match_date, p.match_time_utc, p.home
         """).fetchall()
 
         # Results: use "bet odds" = latest 22-23h snapshot from day before match,
         # falling back to earliest available odds for that prediction
         results = conn.execute("""
-            SELECT p.comp, p.home, p.away, p.match_date,
+            SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
                    r.home_score, r.away_score, r.outcome
@@ -114,10 +129,12 @@ def build_value_table(bets):
     for c in candidates:
         ev_str = f"{c['ev']:+.1%}"
         side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}[c["side"]]
+        hora = utc_to_chile(c.get("match_time_utc"))
+        hora_cell = f'{c["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else c["match_date"]
         rows += f"""
         <tr style="{ev_bg(c['ev'])}">
           <td>{comp_flag(c['comp'])} {c['comp']}</td>
-          <td>{c['match_date']}</td>
+          <td>{hora_cell}</td>
           <td><strong>{c['home']}</strong> vs <strong>{c['away']}</strong></td>
           <td>{side_label}: <strong>{c['team']}</strong></td>
           <td style="font-size:1.1em;font-weight:bold">{c['odds']:.2f}</td>
@@ -185,13 +202,15 @@ def build_results_table(results):
             )
 
         score = f"{r['home_score']}-{r['away_score']}"
+        hora = utc_to_chile(r.get("match_time_utc"))
+        hora_cell = f'{r["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else r["match_date"]
         rows += f"""
         <tr>
           <td>{comp_flag(r['comp'])} {r['comp']}</td>
-          <td>{r['match_date']}</td>
+          <td>{hora_cell}</td>
           <td>{r['home']} vs {r['away']}</td>
           <td style="font-weight:bold;font-size:1.1em">{score}</td>
-          <td>{bet_cells or '<span style="color:#475569">—</span>'}</td>
+          <td>{bet_cells}</td>
         </tr>"""
 
     # Summary bar
