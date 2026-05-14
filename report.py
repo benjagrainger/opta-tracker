@@ -55,9 +55,9 @@ def delta_color(d):
 
 def delta_bg(d):
     if d is None: return ""
-    if d >= 8:  return "background:#dcfce7"
-    if d >= 4:  return "background:#f0fdf4"
-    if d >= 2:  return "background:#fefce8"
+    if d >= 8:  return "background:rgba(22,163,74,0.18)"
+    if d >= 4:  return "background:rgba(101,163,13,0.12)"
+    if d >= 2:  return "background:rgba(202,138,4,0.10)"
     return ""
 
 def outcome_icon(outcome, side):
@@ -88,7 +88,7 @@ def build_value_table(bets):
                 candidates.append({**b, "side": side, "team": team,
                                     "opta": opta, "odds": odds, "delta": delta,
                                     "impl": impl, "ev": ev})
-    candidates.sort(key=lambda x: x["delta"], reverse=True)
+    candidates.sort(key=lambda x: (x["match_date"], -x["delta"]))
 
     if not candidates:
         return '<p style="color:#64748b;padding:20px">No hay bets con Δ ≥ 3pp en el ticker actual. Esperá al próximo scrape.</p>'
