@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS predictions (
     prob_draw       REAL NOT NULL,
     prob_away       REAL NOT NULL,
     sofascore_id    INTEGER,
+    apifootball_id  INTEGER,
     UNIQUE(match_date, home, away)
 );
 
@@ -52,6 +53,12 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        # Migrate: add apifootball_id to existing DBs
+        try:
+            conn.execute("ALTER TABLE predictions ADD COLUMN apifootball_id INTEGER")
+            conn.commit()
+        except Exception:
+            pass  # column already exists
     print(f"DB ready: {DB_PATH}")
 
 if __name__ == "__main__":

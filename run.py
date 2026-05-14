@@ -9,16 +9,19 @@ Uso:
   python run.py all         → scrape + results + report
 """
 import sys
-import json
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import datetime, timezone
 
 from db import init_db, get_conn
 from opta import scrape_ticker, parse_match_date
-from sofascore import (
-    get_events_for_date, find_event, get_odds,
-    compute_implied, add_deltas,
+from sofascore import compute_implied, add_deltas
+from apifootball import (
+    COMP_TO_LEAGUE,
+    get_fixtures_for_date,
+    find_fixture,
+    get_odds as af_get_odds,
+    get_result as af_get_result,
 )
-from apifootball import get_result as apifootball_get_result
 from analyze import print_report
 from report import generate as generate_html
 
@@ -30,9 +33,8 @@ def scrape():
     matches = scrape_ticker()
     print(f"  → {len(matches)} partidos futuros encontrados")
 
-    # Cache Sofascore events per date to avoid repeated API calls
-    sf_cache = {}
-    sofascore_ok = True  # track if Sofascore is responding
+    # Cache API Football fixtures per (comp, date) to minimise API calls
+    af_cache = {}
 
     saved = skipped = no_odds = 0
     with get_conn() as conn:
@@ -43,42 +45,51 @@ def scrape():
 
             # Upsert prediction
             existing = conn.execute(
-                "SELECT id, sofascore_id FROM predictions WHERE match_date=? AND home=? AND away=?",
+                "SELECT id, apifootball_id FROM predictions WHERE match_date=? AND home=? AND away=?",
                 (date_str, m["home"], m["away"])
             ).fetchone()
 
             if existing:
                 pred_id = existing["id"]
-                sf_id = existing["sofascore_id"]
+                af_id = existing["apifootball_id"]
                 skipped += 1
             else:
-                # Find Sofascore event (only if API is responding)
-                sf_id = None
-                if sofascore_ok:
-                    if date_str not in sf_cache:
-                        events = get_events_for_date(date_str)
-                        sf_cache[date_str] = events
-                        if not events:
-                            print("  [sofascore] No events returned — skipping odds for this run")
-                            sofascore_ok = False
-                    if sofascore_ok:
-                        event = find_event(sf_cache[date_str], m["home"], m["away"], m["comp"])
-                        sf_id = event["id"] if event else None
-
+                af_id = None
                 cur = conn.execute(
                     """INSERT INTO predictions
                        (scraped_at, match_date, match_time_utc, comp, home, away,
-                        prob_home, prob_draw, prob_away, sofascore_id)
-                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                        prob_home, prob_draw, prob_away)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
                     (NOW, date_str, time_str, m["comp"], m["home"], m["away"],
-                     m["prob_home"], m["prob_draw"], m["prob_away"], sf_id)
+                     m["prob_home"], m["prob_draw"], m["prob_away"])
                 )
                 pred_id = cur.lastrowid
                 saved += 1
 
-            # Fetch and store current odds
-            if sf_id and sofascore_ok:
-                raw = get_odds(sf_id)
+            # Resolve API Football fixture ID (look up if not yet stored)
+            if not af_id:
+                comp_key = (m["comp"], date_str)
+                if comp_key not in af_cache:
+                    league_info = COMP_TO_LEAGUE.get(m["comp"])
+                    if league_info:
+                        lid, season = league_info
+                        time.sleep(0.3)
+                        af_cache[comp_key] = get_fixtures_for_date(lid, season, date_str)
+                    else:
+                        af_cache[comp_key] = []
+
+                fixtures = af_cache.get(comp_key, [])
+                fixture = find_fixture(fixtures, m["home"], m["away"])
+                if fixture:
+                    af_id = fixture["fixture"]["id"]
+                    conn.execute(
+                        "UPDATE predictions SET apifootball_id=? WHERE id=?",
+                        (af_id, pred_id)
+                    )
+
+            # Fetch and store current odds from API Football
+            if af_id:
+                raw = af_get_odds(af_id)
                 if raw:
                     d = compute_implied(raw)
                     d = add_deltas(d, m["prob_home"], m["prob_draw"], m["prob_away"])
@@ -96,11 +107,10 @@ def scrape():
                 else:
                     no_odds += 1
 
-    sf_status = "OK" if sofascore_ok else "UNAVAILABLE (odds skipped)"
-    print(f"  Nuevos: {saved} | Ya existían: {skipped} | Sin cuotas: {no_odds} | Sofascore: {sf_status}")
+    print(f"  Nuevos: {saved} | Ya existían: {skipped} | Sin cuotas: {no_odds}")
 
-    # Print top value bets
-    _print_top_value()
+    # Print PEV bets to console
+    _print_pev_bets()
 
     # Always regenerate the HTML dashboard
     generate_html()
@@ -118,7 +128,7 @@ def update_results():
 
         updated = 0
         for row in pending:
-            res = apifootball_get_result(row["home"], row["away"], row["comp"], row["match_date"])
+            res = af_get_result(row["home"], row["away"], row["comp"], row["match_date"])
             if res:
                 conn.execute(
                     """INSERT OR REPLACE INTO results
@@ -133,58 +143,55 @@ def update_results():
     print(f"  {updated} resultado(s) nuevos guardados")
 
 
-def _print_top_value():
-    """Print today's top value bets from the DB."""
+def _print_pev_bets():
+    """Print current positive-EV bets to console."""
     with get_conn() as conn:
         rows = conn.execute("""
             SELECT p.comp, p.home, p.away, p.match_date,
                    p.prob_home, p.prob_draw, p.prob_away,
-                   o.odds_home, o.odds_draw, o.odds_away,
-                   o.delta_home, o.delta_draw, o.delta_away
+                   o.odds_home, o.odds_draw, o.odds_away
             FROM predictions p
             JOIN odds o ON o.prediction_id = p.id
             WHERE o.id IN (
                 SELECT MAX(id) FROM odds GROUP BY prediction_id
             )
-            ORDER BY o.fetched_at DESC
+              AND p.id NOT IN (SELECT prediction_id FROM results)
+            ORDER BY p.match_date, p.home
         """).fetchall()
 
     candidates = []
     for r in rows:
-        max_abs = max(abs(r["delta_home"] or 0), abs(r["delta_draw"] or 0), abs(r["delta_away"] or 0))
-        if max_abs > 20:
-            continue  # likely data quality issue
-        for side, opta, odds, delta in [
-            ("L", r["prob_home"], r["odds_home"], r["delta_home"]),
-            ("E", r["prob_draw"], r["odds_draw"], r["delta_draw"]),
-            ("V", r["prob_away"], r["odds_away"], r["delta_away"]),
+        for side, opta, odds in [
+            ("L", r["prob_home"], r["odds_home"]),
+            ("E", r["prob_draw"], r["odds_draw"]),
+            ("V", r["prob_away"], r["odds_away"]),
         ]:
-            if delta and delta >= 3.0:
-                team = r["home"] if side == "L" else (r["away"] if side == "V" else "Empate")
-                ev = round((opta / 100) * odds - 1, 3)
-                candidates.append({
-                    "partido": f"{r['home']} vs {r['away']}",
-                    "comp": r["comp"],
-                    "fecha": r["match_date"],
-                    "lado": side,
-                    "equipo": team,
-                    "opta_pct": opta,
-                    "cuota": odds,
-                    "delta": delta,
-                    "ev": ev,
-                })
+            if opta and odds:
+                ev = (opta / 100) * odds - 1
+                if ev > 0:
+                    team = r["home"] if side == "L" else (r["away"] if side == "V" else "Empate")
+                    candidates.append({
+                        "partido": f"{r['home']} vs {r['away']}",
+                        "comp": r["comp"],
+                        "fecha": r["match_date"],
+                        "lado": side,
+                        "equipo": team,
+                        "opta_pct": opta,
+                        "cuota": odds,
+                        "ev": ev,
+                    })
 
     if not candidates:
-        print("\n  (No hay bets con delta ≥ 3pp en el ticker actual)")
+        print("\n  (No hay apuestas con PEV en el ticker actual)")
         return
 
-    candidates.sort(key=lambda x: x["delta"], reverse=True)
-    print(f"\n  TOP VALUE BETS (delta ≥ 3pp):")
-    print(f"  {'Partido':<20} {'Liga':5} {'Lado':2} {'Opta%':>6} {'Cuota':>6} {'Δ':>6} {'EV':>7}")
-    print("  " + "-" * 60)
-    for c in candidates[:10]:
-        print(f"  {c['partido']:<20} {c['comp']:5} {c['lado']:2} "
-              f"{c['opta_pct']:>6.1f} {c['cuota']:>6.2f} {c['delta']:>+6.1f} {c['ev']:>+7.1%}")
+    candidates.sort(key=lambda x: x["ev"], reverse=True)
+    print(f"\n  APUESTAS CON PEV:")
+    print(f"  {'Partido':<22} {'Liga':5} {'Lado':2} {'Opta%':>6} {'Cuota':>6} {'EV':>7}")
+    print("  " + "-" * 58)
+    for c in candidates[:15]:
+        print(f"  {c['partido']:<22} {c['comp']:5} {c['lado']:2} "
+              f"{c['opta_pct']:>6.1f} {c['cuota']:>6.2f} {c['ev']:>+7.1%}")
 
 
 if __name__ == "__main__":

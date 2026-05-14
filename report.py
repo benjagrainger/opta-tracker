@@ -1,5 +1,4 @@
 """Genera el dashboard HTML. Se llama automáticamente después de cada scrape."""
-import sqlite3
 from datetime import datetime
 from pathlib import Path
 from db import get_conn
@@ -9,13 +8,11 @@ OUTPUT = Path(__file__).parent / "docs" / "index.html"
 
 def load_data():
     with get_conn() as conn:
-        # Latest odds per prediction
+        # Current value bets: latest odds per prediction, no result yet
         value_bets = conn.execute("""
             SELECT p.comp, p.home, p.away, p.match_date,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
-                   o.impl_home, o.impl_draw, o.impl_away,
-                   o.delta_home, o.delta_draw, o.delta_away,
                    o.fetched_at
             FROM predictions p
             JOIN odds o ON o.prediction_id = p.id
@@ -24,16 +21,25 @@ def load_data():
             ORDER BY p.match_date, p.home
         """).fetchall()
 
+        # Results: use "bet odds" = latest 22-23h snapshot from day before match,
+        # falling back to earliest available odds for that prediction
         results = conn.execute("""
             SELECT p.comp, p.home, p.away, p.match_date,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
-                   o.delta_home, o.delta_draw, o.delta_away,
                    r.home_score, r.away_score, r.outcome
             FROM predictions p
-            JOIN odds o ON o.prediction_id = p.id
             JOIN results r ON r.prediction_id = p.id
-            WHERE o.id IN (SELECT MAX(id) FROM odds GROUP BY prediction_id)
+            JOIN odds o ON o.id = (
+                SELECT COALESCE(
+                    (SELECT id FROM odds
+                     WHERE prediction_id = p.id
+                       AND strftime('%H', fetched_at) IN ('22','23')
+                       AND DATE(fetched_at) = DATE(p.match_date, '-1 day')
+                     ORDER BY fetched_at DESC LIMIT 1),
+                    (SELECT MIN(id) FROM odds WHERE prediction_id = p.id)
+                )
+            )
             ORDER BY p.match_date DESC
             LIMIT 100
         """).fetchall()
@@ -42,139 +48,167 @@ def load_data():
             SELECT COUNT(*) as total FROM predictions
         """).fetchone()
 
-    return [dict(r) for r in value_bets], [dict(r) for r in results], dict(stats)
+    return (
+        [dict(r) for r in value_bets],
+        [dict(r) for r in results],
+        dict(stats),
+    )
 
 
-def delta_color(d):
-    if d is None: return "#888"
-    if d >= 8:  return "#16a34a"
-    if d >= 4:  return "#65a30d"
-    if d >= 2:  return "#ca8a04"
-    if d <= -5: return "#dc2626"
+def ev_color(ev):
+    if ev is None: return "#888"
+    if ev >= 0.15: return "#16a34a"
+    if ev >= 0.07: return "#65a30d"
+    if ev >= 0.02: return "#ca8a04"
+    if ev < 0:     return "#dc2626"
     return "#64748b"
 
-def delta_bg(d):
-    if d is None: return ""
-    if d >= 8:  return "background:rgba(22,163,74,0.18)"
-    if d >= 4:  return "background:rgba(101,163,13,0.12)"
-    if d >= 2:  return "background:rgba(202,138,4,0.10)"
+def ev_bg(ev):
+    if ev is None: return ""
+    if ev >= 0.15: return "background:rgba(22,163,74,0.18)"
+    if ev >= 0.07: return "background:rgba(101,163,13,0.12)"
+    if ev >= 0.02: return "background:rgba(202,138,4,0.10)"
     return ""
-
-def outcome_icon(outcome, side):
-    if outcome == side: return "✅"
-    return "❌"
 
 def comp_flag(comp):
     flags = {
         "LL": "🇪🇸", "EPL": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "LI1": "🇫🇷", "BUN": "🇩🇪",
         "MLS": "🇺🇸", "CHA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "WSL": "⚽", "LEO": "🌍",
-        "SPL": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "SA": "🇮🇹", "BRAS": "🇧🇷",
+        "SPL": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "SA": "🇮🇹", "LET": "🌍",
     }
     return flags.get(comp, "⚽")
 
 
 def build_value_table(bets):
-    """Builds candidate value bets grouped by match."""
+    """Builds table of matches with at least one side with EV > 0."""
     candidates = []
     for b in bets:
-        # Skip rows where any delta exceeds ±20pp — sign of wrong market or home/away mismatch
-        max_abs_delta = max(
-            abs(b["delta_home"] or 0),
-            abs(b["delta_draw"] or 0),
-            abs(b["delta_away"] or 0),
-        )
-        if max_abs_delta > 20:
-            continue
-
-        for side, opta, odds, delta, impl in [
-            ("L", b["prob_home"], b["odds_home"], b["delta_home"], b["impl_home"]),
-            ("E", b["prob_draw"], b["odds_draw"], b["delta_draw"], b["impl_draw"]),
-            ("V", b["prob_away"], b["odds_away"], b["delta_away"], b["impl_away"]),
+        for side, opta, odds in [
+            ("L", b["prob_home"], b["odds_home"]),
+            ("E", b["prob_draw"], b["odds_draw"]),
+            ("V", b["prob_away"], b["odds_away"]),
         ]:
-            if delta and delta >= 3.0:
-                team = b["home"] if side=="L" else (b["away"] if side=="V" else "Empate")
-                ev = (opta/100)*odds - 1
-                candidates.append({**b, "side": side, "team": team,
-                                    "opta": opta, "odds": odds, "delta": delta,
-                                    "impl": impl, "ev": ev})
-    candidates.sort(key=lambda x: (x["match_date"], -x["delta"]))
+            if not opta or not odds:
+                continue
+            if odds < 1.02 or odds > 25:
+                continue  # sanity: implausible odds → wrong market data
+            ev = (opta / 100) * odds - 1
+            if ev <= 0 or ev > 1.0:
+                continue  # EV > 100% = corrupted data
+            team = b["home"] if side == "L" else (b["away"] if side == "V" else "Empate")
+            candidates.append({
+                    **b,
+                    "side": side,
+                    "team": team,
+                    "opta": opta,
+                    "odds": odds,
+                    "ev": ev,
+                })
+
+    candidates.sort(key=lambda x: (x["match_date"], -x["ev"]))
 
     if not candidates:
-        return '<p style="color:#64748b;padding:20px">No hay bets con Δ ≥ 3pp en el ticker actual. Esperá al próximo scrape.</p>'
+        return '<p style="color:#64748b;padding:20px">No hay apuestas con PEV. Esperá al próximo scrape.</p>'
 
     rows = ""
     for c in candidates:
-        ev_str = f"{c['ev']:+.0%}"
-        ev_color = "#16a34a" if c["ev"] > 0 else "#dc2626"
-        side_label = {"L":"Local","E":"Empate","V":"Visitante"}[c["side"]]
+        ev_str = f"{c['ev']:+.1%}"
+        side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}[c["side"]]
         rows += f"""
-        <tr style="{delta_bg(c['delta'])}">
+        <tr style="{ev_bg(c['ev'])}">
           <td>{comp_flag(c['comp'])} {c['comp']}</td>
           <td>{c['match_date']}</td>
           <td><strong>{c['home']}</strong> vs <strong>{c['away']}</strong></td>
           <td>{side_label}: <strong>{c['team']}</strong></td>
           <td style="font-size:1.1em;font-weight:bold">{c['odds']:.2f}</td>
           <td>{c['opta']:.1f}%</td>
-          <td>{c['impl']:.1f}%</td>
-          <td style="color:{delta_color(c['delta'])};font-weight:bold;font-size:1.1em">{c['delta']:+.1f}pp</td>
-          <td style="color:{ev_color};font-weight:bold">{ev_str}</td>
+          <td style="color:{ev_color(c['ev'])};font-weight:bold;font-size:1.1em">{ev_str}</td>
         </tr>"""
+
     return f"""
     <table>
       <thead><tr>
         <th>Liga</th><th>Fecha</th><th>Partido</th><th>Apuesta</th>
-        <th>Cuota</th><th>Opta %</th><th>Mercado %</th><th>Δ</th><th>EV</th>
+        <th>Cuota</th><th>Opta %</th><th>EV</th>
       </tr></thead>
       <tbody>{rows}</tbody>
     </table>"""
 
 
 def build_results_table(results):
+    """Builds results table with P&L for PEV bets locked at 8pm Chile odds."""
     if not results:
         return '<p style="color:#64748b;padding:20px">Aún no hay resultados registrados.</p>'
 
-    total = len(results)
-    # Bets that had delta >= 5
-    bets_won = bets_lost = 0
-    for r in results:
-        for side, delta in [("L",r["delta_home"]),("E",r["delta_draw"]),("V",r["delta_away"])]:
-            if delta and delta >= 5:
-                won = r["outcome"] == side
-                if won: bets_won += 1
-                else:   bets_lost += 1
-    total_bets = bets_won + bets_lost
-    roi_str = ""
-    if total_bets > 0:
-        roi_str = f"<strong>{bets_won}/{total_bets}</strong> ganadas con Δ≥5pp"
-
+    total_pl = 0.0
+    total_bets = 0
+    wins = 0
     rows = ""
-    for r in results:
-        score = f"{r['home_score']}-{r['away_score']}"
-        outcome_map = {"H":"Local ✅","D":"Empate","A":"Visitante ✅"} if r["outcome"] else {}
-        best_delta = max(
-            (r["delta_home"] or -99, "L"),
-            (r["delta_draw"] or -99, "E"),
-            (r["delta_away"] or -99, "V"),
-        )
-        flag_bet = ""
-        if best_delta[0] >= 5:
-            team = r["home"] if best_delta[1]=="L" else (r["away"] if best_delta[1]=="V" else "Empate")
-            hit = r["outcome"] == best_delta[1]
-            flag_bet = f"{'✅' if hit else '❌'} {team} ({best_delta[0]:+.0f}pp)"
 
+    for r in results:
+        pev_bets = []
+        for side, opta, odds in [
+            ("L", r["prob_home"], r["odds_home"]),
+            ("E", r["prob_draw"], r["odds_draw"]),
+            ("V", r["prob_away"], r["odds_away"]),
+        ]:
+            if not opta or not odds:
+                continue
+            if odds < 1.02 or odds > 25:
+                continue  # sanity check — bad market data
+            ev = (opta / 100) * odds - 1
+            if ev <= 0 or ev > 1.0:
+                continue  # EV > 100% = corrupted data
+            won = (r["outcome"] == side)
+            pl = round(odds - 1, 3) if won else -1.0
+            pev_bets.append({
+                "side": side, "odds": odds, "ev": ev, "won": won, "pl": pl
+            })
+            total_pl += pl
+            total_bets += 1
+            if won: wins += 1
+
+        # Build bet display
+        bet_cells = ""
+        for b in pev_bets:
+            side_name = {"L": "L", "E": "E", "V": "V"}[b["side"]]
+            icon = "✅" if b["won"] else "❌"
+            pl_color = "#16a34a" if b["pl"] > 0 else "#dc2626"
+            pl_str = f"+{b['pl']:.2f}u" if b["pl"] > 0 else f"{b['pl']:.2f}u"
+            bet_cells += (
+                f'<span style="color:{pl_color};margin-right:10px">'
+                f'{icon} {side_name}@{b["odds"]:.2f} <strong>{pl_str}</strong></span>'
+            )
+
+        score = f"{r['home_score']}-{r['away_score']}"
         rows += f"""
         <tr>
           <td>{comp_flag(r['comp'])} {r['comp']}</td>
           <td>{r['match_date']}</td>
           <td>{r['home']} vs {r['away']}</td>
           <td style="font-weight:bold;font-size:1.1em">{score}</td>
-          <td>{flag_bet}</td>
+          <td>{bet_cells or '<span style="color:#475569">—</span>'}</td>
         </tr>"""
 
-    summary = f'<p style="margin-bottom:12px;color:#475569">{total} partidos | {roi_str}</p>' if roi_str else ""
+    # Summary bar
+    pl_color = "#16a34a" if total_pl >= 0 else "#dc2626"
+    pl_str = f"+{total_pl:.2f}u" if total_pl >= 0 else f"{total_pl:.2f}u"
+    win_rate = f"{wins/total_bets:.0%}" if total_bets else "—"
+    summary = f"""
+    <div style="padding:14px 20px;background:#0f172a;border-bottom:1px solid #334155;
+                display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <span style="color:#94a3b8">{total_bets} apuestas PEV registradas</span>
+      <span style="color:#94a3b8">{wins} wins / {total_bets - wins} losses ({win_rate})</span>
+      <span>P&amp;L total: <strong style="color:{pl_color};font-size:1.2em">{pl_str}</strong></span>
+      <span style="color:#475569;font-size:.8em">1 unidad por apuesta</span>
+    </div>""" if total_bets else ""
+
     return summary + f"""
     <table>
-      <thead><tr><th>Liga</th><th>Fecha</th><th>Partido</th><th>Resultado</th><th>Apuesta Opta</th></tr></thead>
+      <thead><tr>
+        <th>Liga</th><th>Fecha</th><th>Partido</th>
+        <th>Resultado</th><th>Apuestas PEV → P&L</th>
+      </tr></thead>
       <tbody>{rows}</tbody>
     </table>"""
 
@@ -182,7 +216,18 @@ def build_results_table(results):
 def generate():
     bets, results, stats = load_data()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
-    next_scrape = "8:00 / 14:00 / 20:00 hs (automático)"
+    next_scrape = "8:00 / 14:00 / 20:00 hs Chile (automático)"
+
+    # Count PEV bets in current ticker
+    pev_count = sum(
+        1 for b in bets
+        for side, opta, odds in [
+            ("L", b["prob_home"], b["odds_home"]),
+            ("E", b["prob_draw"], b["odds_draw"]),
+            ("V", b["prob_away"], b["odds_away"]),
+        ]
+        if opta and odds and (opta / 100) * odds - 1 > 0
+    )
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -203,6 +248,8 @@ def generate():
   .badge {{ background:#1e293b; border:1px solid #334155; border-radius:99px;
             padding:4px 12px; font-size:.8em; color:#94a3b8 }}
   .badge strong {{ color:#e2e8f0 }}
+  .badge.green {{ border-color:#16a34a; background:rgba(22,163,74,0.12) }}
+  .badge.green strong {{ color:#4ade80 }}
   .container {{ max-width:1200px; margin:0 auto; padding:24px 16px }}
   .section {{ background:#1e293b; border-radius:12px; margin-bottom:24px;
               border:1px solid #334155; overflow:hidden }}
@@ -221,22 +268,21 @@ def generate():
   tr:last-child td {{ border-bottom:none }}
   tr:hover td {{ background:rgba(255,255,255,.03) }}
   .legend {{ display:flex; gap:16px; padding:14px 20px; flex-wrap:wrap;
-             background:#0f172a; border-top:1px solid #1e293b; font-size:.8em }}
-  .legend-item {{ display:flex; align-items:center; gap:6px; color:#94a3b8 }}
-  .dot-g {{ width:10px;height:10px;border-radius:50%;background:#16a34a }}
-  .dot-y {{ width:10px;height:10px;border-radius:50%;background:#ca8a04 }}
-  .empty {{ padding:24px; color:#475569; font-style:italic }}
+             background:#0f172a; border-top:1px solid #1e293b; font-size:.8em;
+             color:#64748b }}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>⚽ Opta Tracker</h1>
-  <p>Comparativa de probabilidades Opta vs mercado de apuestas</p>
+  <p>Probabilidades Opta vs mercado — solo apuestas con valor esperado positivo</p>
   <div class="badges">
     <span class="badge">🕐 Actualizado: <strong>{now}</strong></span>
     <span class="badge">🔄 Próximo scrape: <strong>{next_scrape}</strong></span>
     <span class="badge">📊 Partidos en DB: <strong>{stats['total']}</strong></span>
-    <span class="badge">Fuente cuotas: <strong>Sofascore</strong></span>
+    <span class="badge {'green' if pev_count else ''}">
+      🎯 PEV activos: <strong>{pev_count}</strong>
+    </span>
   </div>
 </div>
 
@@ -245,22 +291,21 @@ def generate():
   <div class="section">
     <div class="section-header">
       <div class="dot"></div>
-      <h2>Value Bets actuales — Δ ≥ 3pp (Opta ve más que el mercado)</h2>
+      <h2>Apuestas con valor esperado positivo (cuota 8pm Chile)</h2>
     </div>
     <div class="section-body">
       {build_value_table(bets)}
     </div>
     <div class="legend">
-      <div class="legend-item"><div class="dot-g"></div> Δ ≥ 8pp: edge fuerte</div>
-      <div class="legend-item"><div class="dot-y"></div> Δ 4–8pp: edge moderado</div>
-      <div class="legend-item">EV = retorno esperado si la prob. de Opta es correcta</div>
-      <div class="legend-item">Δ = Opta % − probabilidad implícita del mercado (sin margen)</div>
+      <span>EV = retorno esperado si la probabilidad de Opta es correcta</span>
+      <span>·</span>
+      <span>Cuotas: API Football · Odds blockeadas a las 8pm Chile (23:00 UTC) del día anterior al partido</span>
     </div>
   </div>
 
   <div class="section">
     <div class="section-header">
-      <h2>📋 Historial de partidos resueltos</h2>
+      <h2>📋 Historial — partidos jugados</h2>
     </div>
     <div class="section-body">
       {build_results_table(results)}

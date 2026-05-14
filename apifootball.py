@@ -143,6 +143,38 @@ def find_fixture(fixtures: list, home: str, away: str):
     return best if best_score > 0.5 else None
 
 
+def get_odds(fixture_id: int):
+    """
+    Fetch 1X2 pre-match odds from API Football for a given fixture.
+    Tries all bookmakers until it finds one with Home/Draw/Away values.
+    Returns {odds_home, odds_draw, odds_away} or None.
+    """
+    time.sleep(0.3)
+    data = _get(f"{BASE_URL}/odds?fixture={fixture_id}&bet=1")  # bet=1 = Match Winner
+    for entry in data.get("response", []):
+        for bookmaker in entry.get("bookmakers", []):
+            for bet in bookmaker.get("bets", []):
+                if bet.get("id") == 1:  # Match Winner / 1X2
+                    odds = {}
+                    for v in bet.get("values", []):
+                        name = v.get("value", "").lower()
+                        try:
+                            val = float(v.get("odd", 0))
+                        except (ValueError, TypeError):
+                            continue
+                        if val <= 1.0:
+                            continue  # invalid odd
+                        if name == "home":
+                            odds["odds_home"] = val
+                        elif name == "draw":
+                            odds["odds_draw"] = val
+                        elif name == "away":
+                            odds["odds_away"] = val
+                    if len(odds) == 3:
+                        return odds
+    return None
+
+
 def get_result(home: str, away: str, comp: str, match_date: str):
     """
     Search API Football for the result of home vs away in the given competition on match_date.
