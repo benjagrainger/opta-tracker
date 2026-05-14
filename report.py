@@ -159,7 +159,7 @@ def build_results_table(results):
             ev = (opta / 100) * odds - 1
             if ev <= 0 or ev > 1.0:
                 continue  # EV > 100% = corrupted data
-            won = (r["outcome"] == side)
+            won = (r["outcome"] == {"L": "H", "E": "D", "V": "A"}[side])
             pl = round(odds - 1, 3) if won else -1.0
             pev_bets.append({
                 "side": side, "odds": odds, "ev": ev, "won": won, "pl": pl
