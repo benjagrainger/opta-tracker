@@ -118,6 +118,7 @@ def update_results():
 
         updated = 0
         for row in pending:
+            import time as _time; _time.sleep(2)  # be gentle — avoid rate limiting
             res = get_result(row["sofascore_id"])
             if res:
                 conn.execute(
