@@ -30,7 +30,8 @@ def scrape():
     print(f"  → {len(matches)} partidos futuros encontrados")
 
     # Cache Sofascore events per date to avoid repeated API calls
-    sf_cache: dict[str, list] = {}
+    sf_cache = {}
+    sofascore_ok = True  # track if Sofascore is responding
 
     saved = skipped = no_odds = 0
     with get_conn() as conn:
@@ -50,11 +51,18 @@ def scrape():
                 sf_id = existing["sofascore_id"]
                 skipped += 1
             else:
-                # Find Sofascore event
-                if date_str not in sf_cache:
-                    sf_cache[date_str] = get_events_for_date(date_str)
-                event = find_event(sf_cache[date_str], m["home"], m["away"], m["comp"])
-                sf_id = event["id"] if event else None
+                # Find Sofascore event (only if API is responding)
+                sf_id = None
+                if sofascore_ok:
+                    if date_str not in sf_cache:
+                        events = get_events_for_date(date_str)
+                        sf_cache[date_str] = events
+                        if not events:
+                            print("  [sofascore] No events returned — skipping odds for this run")
+                            sofascore_ok = False
+                    if sofascore_ok:
+                        event = find_event(sf_cache[date_str], m["home"], m["away"], m["comp"])
+                        sf_id = event["id"] if event else None
 
                 cur = conn.execute(
                     """INSERT INTO predictions
@@ -68,7 +76,7 @@ def scrape():
                 saved += 1
 
             # Fetch and store current odds
-            if sf_id:
+            if sf_id and sofascore_ok:
                 raw = get_odds(sf_id)
                 if raw:
                     d = compute_implied(raw)
@@ -87,7 +95,8 @@ def scrape():
                 else:
                     no_odds += 1
 
-    print(f"  Nuevos: {saved} | Ya existían: {skipped} | Sin cuotas: {no_odds}")
+    sf_status = "OK" if sofascore_ok else "UNAVAILABLE (odds skipped)"
+    print(f"  Nuevos: {saved} | Ya existían: {skipped} | Sin cuotas: {no_odds} | Sofascore: {sf_status}")
 
     # Print top value bets
     _print_top_value()

@@ -16,14 +16,26 @@ HEADERS = {
     "Cache-Control": "no-cache",
 }
 
-def _get(url: str) -> dict:
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read())
+def _get(url: str, retries: int = 3) -> dict:
+    """GET with retries and exponential backoff. Returns {} on persistent failure."""
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return json.loads(r.read())
+        except Exception as e:
+            if attempt < retries - 1:
+                wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
+                print(f"    [sofascore] {e} — retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                print(f"    [sofascore] Failed after {retries} attempts: {e}")
+                return {}
+    return {}
 
 
 def get_events_for_date(date_str: str) -> list:
-    """date_str: 'YYYY-MM-DD'. Returns list of Sofascore event dicts."""
+    """date_str: 'YYYY-MM-DD'. Returns list of Sofascore event dicts (empty on error)."""
     data = _get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{date_str}")
     return data.get("events", [])
 
