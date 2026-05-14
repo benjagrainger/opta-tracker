@@ -168,6 +168,10 @@ def build_results_table(results):
             total_bets += 1
             if won: wins += 1
 
+        # Skip matches with no PEV bets
+        if not pev_bets:
+            continue
+
         # Build bet display
         bet_cells = ""
         for b in pev_bets:
