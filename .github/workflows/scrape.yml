@@ -32,6 +32,8 @@ jobs:
 
       - name: Run scraper
         run: python run.py scrape
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
 
       - name: Commit updated data + dashboard
         run: |
@@ -60,6 +62,8 @@ jobs:
 
       - name: Update results + regenerate dashboard
         run: python run.py results && python report.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
 
       - name: Commit results + dashboard
         run: |

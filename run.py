@@ -16,8 +16,9 @@ from db import init_db, get_conn
 from opta import scrape_ticker, parse_match_date
 from sofascore import (
     get_events_for_date, find_event, get_odds,
-    compute_implied, add_deltas, get_result,
+    compute_implied, add_deltas,
 )
+from apifootball import get_result as apifootball_get_result
 from analyze import print_report
 from report import generate as generate_html
 
@@ -109,17 +110,15 @@ def update_results():
     print(f"\n[{NOW}] Actualizando resultados...")
     with get_conn() as conn:
         pending = conn.execute("""
-            SELECT p.id, p.sofascore_id, p.home, p.away, p.match_date
+            SELECT p.id, p.home, p.away, p.match_date, p.comp
             FROM predictions p
-            WHERE p.sofascore_id IS NOT NULL
-              AND p.id NOT IN (SELECT prediction_id FROM results)
+            WHERE p.id NOT IN (SELECT prediction_id FROM results)
               AND p.match_date <= date('now', '+1 day')
         """).fetchall()
 
         updated = 0
         for row in pending:
-            import time as _time; _time.sleep(2)  # be gentle — avoid rate limiting
-            res = get_result(row["sofascore_id"])
+            res = apifootball_get_result(row["home"], row["away"], row["comp"], row["match_date"])
             if res:
                 conn.execute(
                     """INSERT OR REPLACE INTO results
