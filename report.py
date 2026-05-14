@@ -120,7 +120,13 @@ def build_value_table(bets):
                     "ev": ev,
                 })
 
-    candidates.sort(key=lambda x: (x["match_date"], -x["ev"]))
+    # Keep only highest-EV bet per match
+    best = {}
+    for c in candidates:
+        key = (c["match_date"], c["home"], c["away"])
+        if key not in best or c["ev"] > best[key]["ev"]:
+            best[key] = c
+    candidates = sorted(best.values(), key=lambda x: (x["match_date"], x.get("match_time_utc") or "", -x["ev"]))
 
     if not candidates:
         return '<p style="color:#64748b;padding:20px">No hay apuestas con PEV. Esperá al próximo scrape.</p>'
@@ -176,18 +182,21 @@ def build_results_table(results):
             ev = (opta / 100) * odds - 1
             if ev <= 0 or ev > 1.0:
                 continue  # EV > 100% = corrupted data
-            won = (r["outcome"] == {"L": "H", "E": "D", "V": "A"}[side])
-            pl = round(odds - 1, 3) if won else -1.0
-            pev_bets.append({
-                "side": side, "odds": odds, "ev": ev, "won": won, "pl": pl
-            })
-            total_pl += pl
-            total_bets += 1
-            if won: wins += 1
+            pev_bets.append({"side": side, "odds": odds, "ev": ev})
 
         # Skip matches with no PEV bets
         if not pev_bets:
             continue
+
+        # Keep only the single highest-EV bet
+        best_bet = max(pev_bets, key=lambda x: x["ev"])
+        won = (r["outcome"] == {"L": "H", "E": "D", "V": "A"}[best_bet["side"]])
+        best_bet["won"] = won
+        best_bet["pl"] = round(best_bet["odds"] - 1, 3) if won else -1.0
+        pev_bets = [best_bet]
+        total_pl += best_bet["pl"]
+        total_bets += 1
+        if won: wins += 1
 
         # Build bet display
         bet_cells = ""
