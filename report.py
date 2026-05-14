@@ -77,6 +77,15 @@ def build_value_table(bets):
     """Builds candidate value bets grouped by match."""
     candidates = []
     for b in bets:
+        # Skip rows where any delta exceeds ±20pp — sign of wrong market or home/away mismatch
+        max_abs_delta = max(
+            abs(b["delta_home"] or 0),
+            abs(b["delta_draw"] or 0),
+            abs(b["delta_away"] or 0),
+        )
+        if max_abs_delta > 20:
+            continue
+
         for side, opta, odds, delta, impl in [
             ("L", b["prob_home"], b["odds_home"], b["delta_home"], b["impl_home"]),
             ("E", b["prob_draw"], b["odds_draw"], b["delta_draw"], b["impl_draw"]),

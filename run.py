@@ -142,6 +142,9 @@ def _print_top_value():
 
     candidates = []
     for r in rows:
+        max_abs = max(abs(r["delta_home"] or 0), abs(r["delta_draw"] or 0), abs(r["delta_away"] or 0))
+        if max_abs > 20:
+            continue  # likely data quality issue
         for side, opta, odds, delta in [
             ("L", r["prob_home"], r["odds_home"], r["delta_home"]),
             ("E", r["prob_draw"], r["odds_draw"], r["delta_draw"]),

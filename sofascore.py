@@ -28,36 +28,76 @@ def get_events_for_date(date_str: str) -> list:
     return data.get("events", [])
 
 
+# Opta abbreviation → keyword that appears in the Sofascore team name (lowercase)
+OPTA_ABBREV = {
+    # Bundesliga
+    "SGE": "frankfurt", "BMG": "gladbach", "FCB": "bayern", "KOE": "köln",
+    "STP": "pauli",     "SVW": "werder",   "FCU": "union",  "SCF": "freiburg",
+    "RBL": "leipzig",   "HDH": "heidenheim","LEV": "leverkusen","VFB": "stuttgart",
+    "BVB": "dortmund",  "M05": "mainz",    "FCA": "augsburg","WOB": "wolfsburg",
+    "TSG": "hoffenheim","HSV": "hamburg",
+    # MLS
+    "SKC": "kansas",    "LAG": "galaxy",   "LAF": "los angeles fc",
+    "STL": "st. louis", "ATL": "atlanta",  "NSH": "nashville","CLB": "columbus",
+    "ATX": "austin",    "HOU": "houston",  "SDG": "san diego",
+    "RSL": "salt lake", "SJ":  "san jose", "VAN": "vancouver",
+    "POR": "portland",  "SEA": "seattle",  "CLT": "charlotte",
+    "NYC": "new york city", "NYR": "red bulls", "PHI": "philadelphia",
+    "DC":  "dc united", "CHI": "chicago",  "ORL": "orlando",
+    "NE":  "new england","MTL": "montreal", "DAL": "dallas",
+    "MIN": "minnesota", "COL": "colorado", "TOR": "toronto",
+    "CIN": "cincinnati","MIA": "miami",    "ATL": "atlanta",
+    # WSL
+    "LFC": "liverpool", "ARS": "arsenal",  "CHE": "chelsea",
+    "MCI": "manchester city", "MNU": "manchester united",
+    "EVE": "everton",   "LEI": "leicester","TOT": "tottenham",
+    "BHA": "brighton",  "LCL": "london city","WHU": "west ham",
+    "AST": "aston villa",
+    # LaLiga
+    "VAL": "valencia",  "RAY": "rayo",     "RMA": "real madrid",
+    "BAR": "barcelona", "ATM": "atlético", "SEV": "sevilla",
+    "VIL": "villarreal","RSO": "sociedad", "BET": "betis",
+    "GIR": "girona",    "CEL": "celta",    "ALA": "alavés",
+    "GET": "getafe",    "MLL": "mallorca", "LEG": "leganés",
+    "VCF": "valencia",  "ESP": "espanyol", "ATH": "athletic",
+    "OVI": "oviedo",
+}
+
+
 def find_event(events: list, home: str, away: str, comp: str = None) -> dict:
     """Fuzzy-match home/away team abbreviations to a Sofascore event.
     Raises the threshold and optionally filters by Opta competition code."""
 
-    # Sofascore tournament IDs for leagues Opta tracks
+    # Sofascore uniqueTournament IDs for leagues Opta tracks
     COMP_TO_TOURNAMENT = {
-        "LL":   17,    # LaLiga
-        "EPL":  17666, # Premier League
+        "LL":   8,     # LaLiga
+        "EPL":  17,    # Premier League
         "BUN":  35,    # Bundesliga
         "LI1":  34,    # Ligue 1
         "SA":   23,    # Serie A
         "MLS":  242,   # MLS
         "CHA":  18,    # Championship
         "SPL":  36,    # Scottish Premiership
-        "WSL":  316,   # WSL
+        "WSL":  1044,  # Women's Super League
+        "FAC":  19,    # FA Cup
     }
 
     def similarity(abbr: str, full: str) -> float:
-        """Compare Opta abbreviation to Sofascore team name.
-        Gives bonus if the abbreviation appears at the start of any word."""
-        a, b = abbr.lower(), full.lower()
-        base = SequenceMatcher(None, a, b).ratio()
-        # Bonus: abbr is a prefix of any word in the full name (e.g. CIN → Cincinnati)
+        """Compare Opta abbreviation to Sofascore team name."""
+        a, b = abbr.upper(), full.lower()
+        base = SequenceMatcher(None, a.lower(), b).ratio()
         words = b.replace("-", " ").split()
-        if any(w.startswith(a) for w in words):
+        # Bonus: abbr is a prefix of any word (e.g. CIN → Cincinnati)
+        if any(w.startswith(a.lower()) for w in words):
             base = max(base, 0.75)
         # Bonus: abbr matches initials (e.g. LAG → LA Galaxy)
         initials = "".join(w[0] for w in words if w)
-        if a == initials:
+        if a.lower() == initials:
             base = max(base, 0.80)
+        # Bonus: known abbreviation keyword appears in the name
+        keyword = OPTA_ABBREV.get(a)
+        if keyword and keyword in b:
+            base = max(base, 0.85)
         return base
 
     target_tournament = COMP_TO_TOURNAMENT.get(comp) if comp else None
@@ -70,8 +110,13 @@ def find_event(events: list, home: str, away: str, comp: str = None) -> dict:
             if tid and tid != target_tournament:
                 continue
 
-        h = e.get("homeTeam", {}).get("shortName") or e.get("homeTeam", {}).get("name", "")
-        a = e.get("awayTeam", {}).get("shortName") or e.get("awayTeam", {}).get("name", "")
+        # Use full name for keyword matching, shortName as fallback for sequence similarity
+        h_short = e.get("homeTeam", {}).get("shortName", "")
+        h_full  = e.get("homeTeam", {}).get("name", "")
+        a_short = e.get("awayTeam", {}).get("shortName", "")
+        a_full  = e.get("awayTeam", {}).get("name", "")
+        h = h_full or h_short
+        a = a_full or a_short
         score = (similarity(home, h) + similarity(away, a)) / 2
         if score > best_score:
             best_score = score
