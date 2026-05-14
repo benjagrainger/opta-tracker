@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="300">
+<title>Opta Tracker</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:#0f172a; color:#e2e8f0; min-height:100vh }
+  .header { background:linear-gradient(135deg,#1e3a5f,#2d1b69);
+             padding:24px 32px; border-bottom:1px solid #1e293b }
+  .header h1 { font-size:1.8em; font-weight:700; color:#fff }
+  .header p  { color:#94a3b8; font-size:.9em; margin-top:4px }
+  .badges { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap }
+  .badge { background:#1e293b; border:1px solid #334155; border-radius:99px;
+            padding:4px 12px; font-size:.8em; color:#94a3b8 }
+  .badge strong { color:#e2e8f0 }
+  .container { max-width:1200px; margin:0 auto; padding:24px 16px }
+  .section { background:#1e293b; border-radius:12px; margin-bottom:24px;
+              border:1px solid #334155; overflow:hidden }
+  .section-header { padding:16px 20px; border-bottom:1px solid #334155;
+                     display:flex; align-items:center; gap:10px }
+  .section-header h2 { font-size:1.1em; font-weight:600; color:#f1f5f9 }
+  .section-header .dot { width:8px;height:8px;border-radius:50%;background:#22c55e;
+                          box-shadow:0 0 6px #22c55e; animation:pulse 2s infinite }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+  .section-body { padding:0; overflow-x:auto }
+  table { width:100%; border-collapse:collapse; font-size:.88em }
+  th { background:#0f172a; color:#94a3b8; font-weight:600; text-transform:uppercase;
+        font-size:.75em; letter-spacing:.05em; padding:10px 14px; text-align:left;
+        border-bottom:1px solid #334155 }
+  td { padding:10px 14px; border-bottom:1px solid #1e3a5f; vertical-align:middle }
+  tr:last-child td { border-bottom:none }
+  tr:hover td { background:rgba(255,255,255,.03) }
+  .legend { display:flex; gap:16px; padding:14px 20px; flex-wrap:wrap;
+             background:#0f172a; border-top:1px solid #1e293b; font-size:.8em }
+  .legend-item { display:flex; align-items:center; gap:6px; color:#94a3b8 }
+  .dot-g { width:10px;height:10px;border-radius:50%;background:#16a34a }
+  .dot-y { width:10px;height:10px;border-radius:50%;background:#ca8a04 }
+  .empty { padding:24px; color:#475569; font-style:italic }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚽ Opta Tracker</h1>
+  <p>Comparativa de probabilidades Opta vs mercado de apuestas</p>
+  <div class="badges">
+    <span class="badge">🕐 Actualizado: <strong>13/05/2026 21:58</strong></span>
+    <span class="badge">🔄 Próximo scrape: <strong>8:00 / 14:00 / 20:00 hs (automático)</strong></span>
+    <span class="badge">📊 Partidos en DB: <strong>53</strong></span>
+    <span class="badge">Fuente cuotas: <strong>Sofascore</strong></span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="section">
+    <div class="section-header">
+      <div class="dot"></div>
+      <h2>Value Bets actuales — Δ ≥ 3pp (Opta ve más que el mercado)</h2>
+    </div>
+    <div class="section-body">
+      
+    <table>
+      <thead><tr>
+        <th>Liga</th><th>Fecha</th><th>Partido</th><th>Apuesta</th>
+        <th>Cuota</th><th>Opta %</th><th>Mercado %</th><th>Δ</th><th>EV</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:#dcfce7">
+          <td>⚽ WSL</td>
+          <td>2026-05-16</td>
+          <td><strong>LFC</strong> vs <strong>ARS</strong></td>
+          <td>Visitante: <strong>ARS</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">5.25</td>
+          <td>68.5%</td>
+          <td>17.6%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+50.9pp</td>
+          <td style="color:#16a34a;font-weight:bold">+260%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇩🇪 BUN</td>
+          <td>2026-05-16</td>
+          <td><strong>SGE</strong> vs <strong>VFB</strong></td>
+          <td>Visitante: <strong>VFB</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">7.50</td>
+          <td>47.7%</td>
+          <td>12.0%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+35.7pp</td>
+          <td style="color:#16a34a;font-weight:bold">+258%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇩🇪 BUN</td>
+          <td>2026-05-16</td>
+          <td><strong>FCB</strong> vs <strong>KOE</strong></td>
+          <td>Local: <strong>FCB</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">1.95</td>
+          <td>75.9%</td>
+          <td>45.8%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+30.1pp</td>
+          <td style="color:#16a34a;font-weight:bold">+48%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-16</td>
+          <td><strong>NE</strong> vs <strong>MIN</strong></td>
+          <td>Local: <strong>NE</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">4.50</td>
+          <td>44.4%</td>
+          <td>20.6%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+23.8pp</td>
+          <td style="color:#16a34a;font-weight:bold">+100%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇪🇸 LL</td>
+          <td>2026-05-14</td>
+          <td><strong>VAL</strong> vs <strong>RAY</strong></td>
+          <td>Local: <strong>VAL</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">4.50</td>
+          <td>44.1%</td>
+          <td>20.0%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+23.8pp</td>
+          <td style="color:#16a34a;font-weight:bold">+98%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>CIN</strong> vs <strong>MIA</strong></td>
+          <td>Local: <strong>CIN</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">11.00</td>
+          <td>31.8%</td>
+          <td>8.5%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+22.7pp</td>
+          <td style="color:#16a34a;font-weight:bold">+250%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇩🇪 BUN</td>
+          <td>2026-05-16</td>
+          <td><strong>SCF</strong> vs <strong>RBL</strong></td>
+          <td>Visitante: <strong>RBL</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">3.60</td>
+          <td>40.8%</td>
+          <td>26.0%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+14.8pp</td>
+          <td style="color:#16a34a;font-weight:bold">+47%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>SKC</strong> vs <strong>LAG</strong></td>
+          <td>Visitante: <strong>LAG</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">2.50</td>
+          <td>49.2%</td>
+          <td>35.8%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+13.4pp</td>
+          <td style="color:#16a34a;font-weight:bold">+23%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇫🇷 LI1</td>
+          <td>2026-05-13</td>
+          <td><strong>BRE</strong> vs <strong>STR</strong></td>
+          <td>Visitante: <strong>STR</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">3.00</td>
+          <td>38.8%</td>
+          <td>30.4%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+8.4pp</td>
+          <td style="color:#16a34a;font-weight:bold">+16%</td>
+        </tr>
+        <tr style="background:#dcfce7">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>CIN</strong> vs <strong>MIA</strong></td>
+          <td>Empate: <strong>Empate</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">6.25</td>
+          <td>23.2%</td>
+          <td>14.9%</td>
+          <td style="color:#16a34a;font-weight:bold;font-size:1.1em">+8.3pp</td>
+          <td style="color:#16a34a;font-weight:bold">+45%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-16</td>
+          <td><strong>DC</strong> vs <strong>STL</strong></td>
+          <td>Visitante: <strong>STL</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">4.20</td>
+          <td>29.1%</td>
+          <td>22.2%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+6.9pp</td>
+          <td style="color:#16a34a;font-weight:bold">+22%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>SEA</strong> vs <strong>SJ</strong></td>
+          <td>Local: <strong>SEA</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">1.76</td>
+          <td>60.2%</td>
+          <td>53.5%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+6.7pp</td>
+          <td style="color:#16a34a;font-weight:bold">+6%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🌍 LEO</td>
+          <td>2026-05-13</td>
+          <td><strong>STP</strong> vs <strong>STE</strong></td>
+          <td>Local: <strong>STP</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">1.95</td>
+          <td>52.7%</td>
+          <td>46.5%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+6.2pp</td>
+          <td style="color:#16a34a;font-weight:bold">+3%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇪🇸 LL</td>
+          <td>2026-05-14</td>
+          <td><strong>VAL</strong> vs <strong>RAY</strong></td>
+          <td>Empate: <strong>Empate</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">4.20</td>
+          <td>26.4%</td>
+          <td>21.4%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+6.1pp</td>
+          <td style="color:#16a34a;font-weight:bold">+11%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>CLT</strong> vs <strong>NYC</strong></td>
+          <td>Local: <strong>CLT</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">2.40</td>
+          <td>44.0%</td>
+          <td>38.8%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+5.7pp</td>
+          <td style="color:#16a34a;font-weight:bold">+6%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>ORL</strong> vs <strong>PHI</strong></td>
+          <td>Visitante: <strong>PHI</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">2.40</td>
+          <td>44.0%</td>
+          <td>39.1%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+5.5pp</td>
+          <td style="color:#16a34a;font-weight:bold">+6%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>⚽ WSL</td>
+          <td>2026-05-16</td>
+          <td><strong>BHA</strong> vs <strong>TOT</strong></td>
+          <td>Local: <strong>BHA</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">2.40</td>
+          <td>44.6%</td>
+          <td>39.2%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+5.4pp</td>
+          <td style="color:#16a34a;font-weight:bold">+7%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-13</td>
+          <td><strong>NYR</strong> vs <strong>CLB</strong></td>
+          <td>Local: <strong>NYR</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">3.00</td>
+          <td>36.6%</td>
+          <td>31.3%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+5.3pp</td>
+          <td style="color:#16a34a;font-weight:bold">+10%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇩🇪 BUN</td>
+          <td>2026-05-16</td>
+          <td><strong>SGE</strong> vs <strong>VFB</strong></td>
+          <td>Empate: <strong>Empate</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">5.00</td>
+          <td>23.2%</td>
+          <td>18.0%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+5.2pp</td>
+          <td style="color:#16a34a;font-weight:bold">+16%</td>
+        </tr>
+        <tr style="background:#f0fdf4">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-16</td>
+          <td><strong>ORL</strong> vs <strong>ATL</strong></td>
+          <td>Local: <strong>ORL</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">2.01</td>
+          <td>50.3%</td>
+          <td>45.7%</td>
+          <td style="color:#65a30d;font-weight:bold;font-size:1.1em">+4.6pp</td>
+          <td style="color:#16a34a;font-weight:bold">+1%</td>
+        </tr>
+        <tr style="background:#fefce8">
+          <td>🇪🇸 LL</td>
+          <td>2026-05-13</td>
+          <td><strong>ALA</strong> vs <strong>BAR</strong></td>
+          <td>Visitante: <strong>BAR</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">2.25</td>
+          <td>43.7%</td>
+          <td>39.9%</td>
+          <td style="color:#ca8a04;font-weight:bold;font-size:1.1em">+3.8pp</td>
+          <td style="color:#dc2626;font-weight:bold">-2%</td>
+        </tr>
+        <tr style="background:#fefce8">
+          <td>⚽ WSL</td>
+          <td>2026-05-16</td>
+          <td><strong>WHU</strong> vs <strong>MCI</strong></td>
+          <td>Local: <strong>WHU</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">12.00</td>
+          <td>11.1%</td>
+          <td>7.6%</td>
+          <td style="color:#ca8a04;font-weight:bold;font-size:1.1em">+3.5pp</td>
+          <td style="color:#16a34a;font-weight:bold">+33%</td>
+        </tr>
+        <tr style="background:#fefce8">
+          <td>🇪🇸 LL</td>
+          <td>2026-05-14</td>
+          <td><strong>RMA</strong> vs <strong>OVI</strong></td>
+          <td>Visitante: <strong>OVI</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">9.50</td>
+          <td>12.1%</td>
+          <td>10.0%</td>
+          <td style="color:#ca8a04;font-weight:bold;font-size:1.1em">+3.5pp</td>
+          <td style="color:#16a34a;font-weight:bold">+15%</td>
+        </tr>
+        <tr style="background:#fefce8">
+          <td>🇺🇸 MLS</td>
+          <td>2026-05-16</td>
+          <td><strong>CLT</strong> vs <strong>TOR</strong></td>
+          <td>Visitante: <strong>TOR</strong></td>
+          <td style="font-size:1.1em;font-weight:bold">4.10</td>
+          <td>25.4%</td>
+          <td>22.3%</td>
+          <td style="color:#ca8a04;font-weight:bold;font-size:1.1em">+3.1pp</td>
+          <td style="color:#16a34a;font-weight:bold">+4%</td>
+        </tr></tbody>
+    </table>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="dot-g"></div> Δ ≥ 8pp: edge fuerte</div>
+      <div class="legend-item"><div class="dot-y"></div> Δ 4–8pp: edge moderado</div>
+      <div class="legend-item">EV = retorno esperado si la prob. de Opta es correcta</div>
+      <div class="legend-item">Δ = Opta % − probabilidad implícita del mercado (sin margen)</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>📋 Historial de partidos resueltos</h2>
+    </div>
+    <div class="section-body">
+      <p style="color:#64748b;padding:20px">Aún no hay resultados registrados.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
