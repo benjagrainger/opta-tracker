@@ -39,27 +39,38 @@ def load_data():
             ORDER BY p.match_date, p.match_time_utc, p.home
         """).fetchall()
 
-        # Results: use bet_snapshot odds (is_bet_snapshot=1 from day before),
-        # then fall back to 22-23h snapshot, then earliest available
+        # Results: best available pre-match odds, prioritising day-before snapshot.
+        # snapshot_type: 'official' (is_bet_snapshot=1 day before) |
+        #                'approx'   (any 22-23h odds day before)    |
+        #                'early'    (odds from >1 day before match)
         results = conn.execute("""
             SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
-                   r.home_score, r.away_score, r.outcome
+                   r.home_score, r.away_score, r.outcome,
+                   CASE
+                     WHEN o.is_bet_snapshot = 1
+                          AND DATE(o.fetched_at) = DATE(p.match_date, '-1 day') THEN 'official'
+                     WHEN DATE(o.fetched_at) = DATE(p.match_date, '-1 day')     THEN 'approx'
+                     ELSE 'early'
+                   END AS snapshot_type
             FROM predictions p
             JOIN results r ON r.prediction_id = p.id
             JOIN odds o ON o.id = (
                 SELECT COALESCE(
                     (SELECT id FROM odds
                      WHERE prediction_id = p.id AND is_bet_snapshot = 1
-                       AND DATE(fetched_at) = DATE(p.match_date, '-1 day')
+                       AND DATE(fetched_at) < p.match_date
                      ORDER BY fetched_at DESC LIMIT 1),
                     (SELECT id FROM odds
                      WHERE prediction_id = p.id
                        AND strftime('%H', fetched_at) IN ('22','23')
-                       AND DATE(fetched_at) = DATE(p.match_date, '-1 day')
+                       AND DATE(fetched_at) < p.match_date
                      ORDER BY fetched_at DESC LIMIT 1),
-                    (SELECT MIN(id) FROM odds WHERE prediction_id = p.id)
+                    (SELECT id FROM odds
+                     WHERE prediction_id = p.id
+                       AND DATE(fetched_at) < p.match_date
+                     ORDER BY fetched_at DESC LIMIT 1)
                 )
             )
             ORDER BY p.match_date DESC
@@ -184,6 +195,9 @@ def build_results_table(results):
 
     total_pl = 0.0
     total_bets = 0
+    official_bets = 0   # is_bet_snapshot=1, day before
+    approx_bets  = 0    # 22-23h odds, day before
+    early_bets   = 0    # odds from >1 day before (less reliable)
     wins = 0
     rows = ""
 
@@ -215,9 +229,19 @@ def build_results_table(results):
         pev_bets = [best_bet]
         total_pl += best_bet["pl"]
         total_bets += 1
+        stype = r.get("snapshot_type", "early")
+        if stype == "official":   official_bets += 1
+        elif stype == "approx":   approx_bets   += 1
+        else:                     early_bets    += 1
         if won: wins += 1
 
         # Build bet display
+        stype = r.get("snapshot_type", "early")
+        snapshot_icon = {
+            "official": '<span title="Cuota oficial 8pm Chile del día anterior" style="font-size:.8em">📸</span>',
+            "approx":   '<span title="Cuota ventana 22-23h del día anterior" style="font-size:.8em;opacity:.7">🕐</span>',
+            "early":    '<span title="Cuota capturada con más de 1 día de anticipación" style="font-size:.8em;opacity:.6">⚠️</span>',
+        }[stype]
         bet_cells = ""
         for b in pev_bets:
             side_name = {"L": "L", "E": "E", "V": "V"}[b["side"]]
@@ -225,7 +249,7 @@ def build_results_table(results):
             pl_color = "#16a34a" if b["pl"] > 0 else "#dc2626"
             pl_str = f"+{b['pl']:.2f}u" if b["pl"] > 0 else f"{b['pl']:.2f}u"
             bet_cells += (
-                f'<span style="color:{pl_color};margin-right:10px">'
+                f'{snapshot_icon} <span style="color:{pl_color};margin-right:10px">'
                 f'{icon} {side_name}@{b["odds"]:.2f} <strong>{pl_str}</strong></span>'
             )
 
@@ -245,13 +269,22 @@ def build_results_table(results):
     pl_color = "#16a34a" if total_pl >= 0 else "#dc2626"
     pl_str = f"+{total_pl:.2f}u" if total_pl >= 0 else f"{total_pl:.2f}u"
     win_rate = f"{wins/total_bets:.0%}" if total_bets else "—"
+    # Build snapshot quality breakdown note
+    quality_parts = []
+    if official_bets: quality_parts.append(f"📸 {official_bets} oficial")
+    if approx_bets:   quality_parts.append(f"🕐 {approx_bets} aprox.")
+    if early_bets:    quality_parts.append(f"⚠️ {early_bets} anticipado")
+    quality_note = (
+        f' <span style="color:#64748b;font-size:.8em">({" · ".join(quality_parts)})</span>'
+        if quality_parts else ""
+    )
     summary = f"""
     <div style="padding:14px 20px;background:#0f172a;border-bottom:1px solid #334155;
                 display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-      <span style="color:#94a3b8">{total_bets} apuestas PEV registradas</span>
+      <span style="color:#94a3b8">{total_bets} apuestas PEV{quality_note}</span>
       <span style="color:#94a3b8">{wins} wins / {total_bets - wins} losses ({win_rate})</span>
       <span>P&amp;L total: <strong style="color:{pl_color};font-size:1.2em">{pl_str}</strong></span>
-      <span style="color:#475569;font-size:.8em">1 unidad por apuesta</span>
+      <span style="color:#475569;font-size:.8em">1 unidad por apuesta · 📸 = cuota 8pm Chile día anterior</span>
     </div>""" if total_bets else ""
 
     return summary + f"""
@@ -285,7 +318,7 @@ def generate():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="300">
+<meta http-equiv="refresh" content="600">
 <title>Opta Tracker</title>
 <style>
   * {{ box-sizing:border-box; margin:0; padding:0 }}

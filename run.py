@@ -55,6 +55,11 @@ def scrape():
                 pred_id = existing["id"]
                 af_id = existing["apifootball_id"]
                 skipped += 1
+                # Opta probabilities change over time — always update to latest
+                conn.execute(
+                    "UPDATE predictions SET prob_home=?, prob_draw=?, prob_away=? WHERE id=?",
+                    (m["prob_home"], m["prob_draw"], m["prob_away"], pred_id)
+                )
             else:
                 af_id = None
                 cur = conn.execute(
