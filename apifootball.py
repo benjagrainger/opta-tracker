@@ -87,7 +87,8 @@ OPTA_ABBREV = {
     "BHA": "brighton",    "LCL": "london city", "WHU": "west ham",
     "AST": "aston villa", "TOT": "tottenham",   "CHE": "chelsea",
     # EPL
-    "AVL": "aston villa", "NOT": "nottingham",  "NEW": "newcastle",
+    "AVL": "aston villa", "NOT": "nottingham",  "NFO": "nottingham",
+    "MUN": "manchester united", "NEW": "newcastle",
     "WOL": "wolverhampton","FUL": "fulham",     "BRE": "brentford",
     "CRY": "crystal",     "IPS": "ipswich",     "SOU": "southampton",
     # LaLiga
@@ -97,14 +98,20 @@ OPTA_ABBREV = {
     "GIR": "girona",      "CEL": "celta",       "ALA": "alaves",
     "GET": "getafe",      "MLL": "mallorca",    "LEG": "leganes",
     "ESP": "espanyol",    "ATH": "athletic",    "OVI": "oviedo",
-    # Ligue 1
-    "PSG": "paris",       "LIL": "lille",       "OLY": "lyon",
-    "MON": "monaco",      "NIC": "nice",        "STR": "strasbourg",
-    "NAN": "nantes",      "REN": "rennes",      "MRS": "marseille",
-    "REI": "reims",       "TOU": "toulouse",    "RCL": "lens",
+    # Ligue 1 — abreviaturas Opta reales
+    "PSG": "paris",       "LIL": "lille",       "OL":  "lyon",
+    "OLY": "lyon",        "ASM": "monaco",      "MON": "monaco",
+    "NIC": "nice",        "STR": "strasbourg",  "NAN": "nantes",
+    "REN": "rennes",      "OM":  "marseille",   "MRS": "marseille",
+    "REI": "reims",       "TFC": "toulouse",    "TOU": "toulouse",
+    "RCL": "lens",        "FCL": "lorient",     "HAC": "havre",
+    "SCO": "angers",      "AJA": "auxerre",
+    "BRE": "brest",       # NB: BRE=Brentford en EPL filtrado por liga
     # League One / League Two
     "STE": "stevenage",   "BRA": "bradford",    "BOL": "bolton",
-    "CHF": "cheltenham",  "SAL": "salford",     "GRI": "grimsby",
+    "CHF": "chester",     "SAL": "salford",     "GRI": "grimsby",
+    "NOT": "notts county","CTN": "cheltenham",
+
     # Serie A
     "JUV": "juventus",    "INT": "inter",       "MIL": "milan",
     "ROM": "roma",        "LAZ": "lazio",       "NAP": "napoli",
@@ -159,9 +166,18 @@ def _get(url: str, retries: int = 3) -> dict:
     return {}
 
 
+def _normalize(s: str) -> str:
+    """Normalize umlauts and accents for robust matching."""
+    return (s.lower()
+            .replace("ü", "u").replace("ö", "o").replace("ä", "a")
+            .replace("ñ", "n").replace("é", "e").replace("á", "a")
+            .replace("í", "i").replace("ó", "o").replace("ú", "u")
+            .replace("è", "e").replace("ê", "e").replace("â", "a"))
+
+
 def _similarity(abbr: str, full: str) -> float:
     """Compare Opta abbreviation to API Football team name."""
-    a, b = abbr.upper(), full.lower()
+    a, b = abbr.upper(), _normalize(full)
     base = SequenceMatcher(None, a.lower(), b).ratio()
     words = b.replace("-", " ").split()
     # Bonus: abbr is a prefix of any word
