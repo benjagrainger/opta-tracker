@@ -11,18 +11,54 @@ BASE_URL = "https://v3.football.api-sports.io"
 
 # (league_id, season) per Opta competition code
 COMP_TO_LEAGUE = {
-    "LL":  (140, 2025),  # LaLiga
+    # England
     "EPL": (39,  2025),  # Premier League
-    "BUN": (78,  2025),  # Bundesliga
-    "LI1": (61,  2025),  # Ligue 1
-    "SA":  (135, 2025),  # Serie A
-    "MLS": (253, 2026),  # MLS
-    "WSL": (44,  2025),  # FA WSL
+    "CHA": (40,  2025),  # Championship
     "LEO": (41,  2025),  # League One
     "LET": (42,  2025),  # League Two
-    "CHA": (40,  2025),  # Championship
     "FAC": (45,  2025),  # FA Cup
+    "EFL": (48,  2025),  # Carabao Cup
+    "WSL": (44,  2025),  # FA WSL
+    # Spain
+    "LL":  (140, 2025),  # LaLiga
+    "LLT": (141, 2025),  # LaLiga 2 (Segunda)
+    "CDR": (143, 2025),  # Copa del Rey
+    # Germany
+    "BUN": (78,  2025),  # Bundesliga
+    "BU2": (79,  2025),  # Bundesliga 2
+    "DFB": (81,  2025),  # DFB Pokal
+    # France
+    "LI1": (61,  2025),  # Ligue 1
+    "LI2": (62,  2025),  # Ligue 2
+    "CFR": (66,  2025),  # Coupe de France
+    # Italy
+    "SEA": (135, 2025),  # Serie A  ← Opta uses "SEA" not "SA"
+    "SA":  (135, 2025),  # alias
+    "SEB": (136, 2025),  # Serie B
+    "CIT": (137, 2025),  # Coppa Italia
+    # Scotland
     "SPL": (179, 2025),  # Scottish Premiership
+    "SCU": (186, 2025),  # Scottish Cup
+    # Netherlands
+    "ERE": (88,  2025),  # Eredivisie
+    # Portugal
+    "PPG": (94,  2025),  # Primeira Liga
+    "PRL": (94,  2025),  # alias
+    # USA
+    "MLS": (253, 2026),  # MLS
+    "NWSL":(254, 2026),  # NWSL
+    # Europe
+    "UCL": (2,   2025),  # Champions League
+    "UEL": (3,   2025),  # Europa League
+    "ECL": (848, 2025),  # Conference League
+    "UNL": (5,   2024),  # Nations League
+    # Others
+    "BRAS":(71,  2026),  # Brasileirao
+    "BSA": (71,  2026),  # alias
+    "LMX": (262, 2025),  # Liga MX
+    "TUR": (203, 2025),  # Süper Lig
+    "BEL": (144, 2025),  # Belgian Pro League
+    "POR": (94,  2025),  # Portuguese Liga (alias)
 }
 
 # Opta abbreviation → keyword in API Football team name (lowercase)
@@ -76,6 +112,28 @@ OPTA_ABBREV = {
     # Scottish PL
     "CEL": "celtic",      "RAN": "rangers",     "HEA": "hearts",
     "HIB": "hibernian",   "ABE": "aberdeen",
+    # Serie A
+    "JUV": "juventus",    "INT": "inter",       "MIL": "milan",
+    "ROM": "roma",        "LAZ": "lazio",       "NAP": "napoli",
+    "ATA": "atalanta",    "FIO": "fiorentina",  "TOR": "torino",
+    "BOL": "bologna",     "UDI": "udinese",     "GEN": "genoa",
+    "PAR": "parma",       "CAG": "cagliari",    "COM": "como",
+    "VER": "verona",      "LEC": "lecce",       "EMP": "empoli",
+    "SAS": "sassuolo",    "MOZ": "monza",       "VEN": "venezia",
+    "CRE": "cremonese",   "PIS": "pisa",
+    # Eredivisie
+    "AJX": "ajax",        "PSV": "psv",         "FEY": "feyenoord",
+    "AZA": "alkmaar",     "UTR": "utrecht",     "TWE": "twente",
+    # Primeira Liga
+    "BEN": "benfica",     "POR": "porto",       "SPO": "sporting",
+    "BRA": "braga",       "GUI": "guimaraes",
+    # Brasileirao
+    "FLA": "flamengo",    "PAL": "palmeiras",   "SAO": "sao paulo",
+    "COR": "corinthians", "GRE": "gremio",      "INT": "internacional",
+    "FLU": "fluminense",  "ATH": "athletico",
+    # Champions/Europa
+    "BAY": "bayern",      "PSG": "paris",       "MCI": "manchester city",
+    "REA": "real madrid", "BAR": "barcelona",
 }
 
 
@@ -126,21 +184,38 @@ def get_fixtures_for_date(league_id: int, season: int, date_str: str) -> list:
     return data.get("response", [])
 
 
-def find_fixture(fixtures: list, home: str, away: str):
-    """Fuzzy-match Opta abbreviations to an API Football fixture. Both teams must score > 0.4."""
+def find_fixture(fixtures: list, home: str, away: str, expected_date: str = None):
+    """
+    Fuzzy-match Opta abbreviations to an API Football fixture.
+    Both teams must individually score > 0.45.
+    If expected_date is given, rejects fixtures whose date differs by more than 1 day.
+    """
     best, best_score = None, 0.0
     for f in fixtures:
+        # Date sanity check
+        if expected_date:
+            fixture_date = f.get("fixture", {}).get("date", "")[:10]
+            if fixture_date:
+                try:
+                    from datetime import datetime as _dt
+                    delta = abs((_dt.strptime(fixture_date, "%Y-%m-%d") -
+                                 _dt.strptime(expected_date, "%Y-%m-%d")).days)
+                    if delta > 1:
+                        continue
+                except ValueError:
+                    pass
+
         h_name = f.get("teams", {}).get("home", {}).get("name", "")
         a_name = f.get("teams", {}).get("away", {}).get("name", "")
         h_sim = _similarity(home, h_name)
         a_sim = _similarity(away, a_name)
-        if h_sim < 0.4 or a_sim < 0.4:
+        if h_sim < 0.45 or a_sim < 0.45:
             continue  # both teams must match
         score = (h_sim + a_sim) / 2
         if score > best_score:
             best_score = score
             best = f
-    return best if best_score > 0.5 else None
+    return best if best_score > 0.55 else None
 
 
 def get_odds(fixture_id: int):

@@ -23,21 +23,24 @@ OUTPUT = Path(__file__).parent / "docs" / "index.html"
 
 def load_data():
     with get_conn() as conn:
-        # Current value bets: latest odds per prediction, no result yet
+        # Current value bets: latest odds + first odds per prediction (for movement)
         value_bets = conn.execute("""
             SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
-                   o.fetched_at
+                   o.fetched_at,
+                   of.odds_home AS first_odds_home,
+                   of.odds_draw AS first_odds_draw,
+                   of.odds_away AS first_odds_away
             FROM predictions p
-            JOIN odds o ON o.prediction_id = p.id
-            WHERE o.id IN (SELECT MAX(id) FROM odds GROUP BY prediction_id)
-              AND p.id NOT IN (SELECT prediction_id FROM results)
+            JOIN odds o ON o.id = (SELECT MAX(id) FROM odds WHERE prediction_id = p.id)
+            LEFT JOIN odds of ON of.id = (SELECT MIN(id) FROM odds WHERE prediction_id = p.id)
+            WHERE p.id NOT IN (SELECT prediction_id FROM results)
             ORDER BY p.match_date, p.match_time_utc, p.home
         """).fetchall()
 
-        # Results: use "bet odds" = latest 22-23h snapshot from day before match,
-        # falling back to earliest available odds for that prediction
+        # Results: use bet_snapshot odds (is_bet_snapshot=1 from day before),
+        # then fall back to 22-23h snapshot, then earliest available
         results = conn.execute("""
             SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
@@ -47,6 +50,10 @@ def load_data():
             JOIN results r ON r.prediction_id = p.id
             JOIN odds o ON o.id = (
                 SELECT COALESCE(
+                    (SELECT id FROM odds
+                     WHERE prediction_id = p.id AND is_bet_snapshot = 1
+                       AND DATE(fetched_at) = DATE(p.match_date, '-1 day')
+                     ORDER BY fetched_at DESC LIMIT 1),
                     (SELECT id FROM odds
                      WHERE prediction_id = p.id
                        AND strftime('%H', fetched_at) IN ('22','23')
@@ -137,13 +144,25 @@ def build_value_table(bets):
         side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}[c["side"]]
         hora = utc_to_chile(c.get("match_time_utc"))
         hora_cell = f'{c["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else c["match_date"]
+
+        # Odds movement indicator
+        side_key = {"L": "home", "E": "draw", "V": "away"}[c["side"]]
+        first_odds = c.get(f"first_odds_{side_key}")
+        if first_odds and abs(c["odds"] - first_odds) >= 0.03:
+            if c["odds"] > first_odds:
+                move = f'<span style="color:#4ade80;font-size:.8em"> ↑{first_odds:.2f}</span>'
+            else:
+                move = f'<span style="color:#f87171;font-size:.8em"> ↓{first_odds:.2f}</span>'
+        else:
+            move = ""
+
         rows += f"""
         <tr style="{ev_bg(c['ev'])}">
           <td>{comp_flag(c['comp'])} {c['comp']}</td>
           <td>{hora_cell}</td>
           <td><strong>{c['home']}</strong> vs <strong>{c['away']}</strong></td>
           <td>{side_label}: <strong>{c['team']}</strong></td>
-          <td style="font-size:1.1em;font-weight:bold">{c['odds']:.2f}</td>
+          <td style="font-size:1.1em;font-weight:bold">{c['odds']:.2f}{move}</td>
           <td>{c['opta']:.1f}%</td>
           <td style="color:{ev_color(c['ev'])};font-weight:bold;font-size:1.1em">{ev_str}</td>
         </tr>"""
@@ -329,9 +348,11 @@ def generate():
       {build_value_table(bets)}
     </div>
     <div class="legend">
-      <span>EV = retorno esperado si la probabilidad de Opta es correcta</span>
+      <span>EV = retorno esperado si la prob. de Opta es correcta</span>
       <span>·</span>
-      <span>Cuotas: API Football · Odds blockeadas a las 8pm Chile (23:00 UTC) del día anterior al partido</span>
+      <span>Cuota: actual · <span style="color:#4ade80">↑ número</span> = subió desde primera detección (mejor) · <span style="color:#f87171">↓ número</span> = bajó (mercado corrigió)</span>
+      <span>·</span>
+      <span>Odds lockeadas a las 8pm Chile del día anterior</span>
     </div>
   </div>
 

@@ -25,7 +25,9 @@ from apifootball import (
 from analyze import print_report
 from report import generate as generate_html
 
-NOW = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+_now_dt = datetime.now(timezone.utc)
+NOW = _now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+IS_BET_SNAPSHOT = 1 if _now_dt.hour == 23 else 0  # 23:00 UTC = 8pm Chile
 
 
 def scrape():
@@ -79,7 +81,7 @@ def scrape():
                         af_cache[comp_key] = []
 
                 fixtures = af_cache.get(comp_key, [])
-                fixture = find_fixture(fixtures, m["home"], m["away"])
+                fixture = find_fixture(fixtures, m["home"], m["away"], expected_date=date_str)
                 if fixture:
                     af_id = fixture["fixture"]["id"]
                     conn.execute(
@@ -97,12 +99,13 @@ def scrape():
                         """INSERT INTO odds
                            (prediction_id, fetched_at, odds_home, odds_draw, odds_away,
                             impl_home, impl_draw, impl_away,
-                            delta_home, delta_draw, delta_away)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                            delta_home, delta_draw, delta_away, is_bet_snapshot)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (pred_id, NOW,
                          d["odds_home"], d["odds_draw"], d["odds_away"],
                          d["impl_home"], d["impl_draw"], d["impl_away"],
-                         d["delta_home"], d["delta_draw"], d["delta_away"])
+                         d["delta_home"], d["delta_draw"], d["delta_away"],
+                         IS_BET_SNAPSHOT)
                     )
                 else:
                     no_odds += 1

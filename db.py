@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS odds (
     impl_away       REAL,
     delta_home      REAL,                   -- Opta% - impl%
     delta_draw      REAL,
-    delta_away      REAL
+    delta_away      REAL,
+    is_bet_snapshot INTEGER DEFAULT 0       -- 1 si fue capturado en el run de 23:00 UTC (8pm Chile)
 );
 
 CREATE TABLE IF NOT EXISTS results (
@@ -53,12 +54,15 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(SCHEMA)
-        # Migrate: add apifootball_id to existing DBs
-        try:
-            conn.execute("ALTER TABLE predictions ADD COLUMN apifootball_id INTEGER")
-            conn.commit()
-        except Exception:
-            pass  # column already exists
+        for migration in [
+            "ALTER TABLE predictions ADD COLUMN apifootball_id INTEGER",
+            "ALTER TABLE odds ADD COLUMN is_bet_snapshot INTEGER DEFAULT 0",
+        ]:
+            try:
+                conn.execute(migration)
+                conn.commit()
+            except Exception:
+                pass  # column already exists
     print(f"DB ready: {DB_PATH}")
 
 if __name__ == "__main__":
