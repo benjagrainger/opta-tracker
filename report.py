@@ -135,16 +135,19 @@ def _ev_cell(opta, odds, first_odds, is_best_pev):
 
     ev_str = f"{ev:+.1%}"
 
-    # Odds movement: color the current odds, show old odds as reference
+    # Odds movement: arrow + current odds in color, old odds as muted reference
     odds_color = "#cbd5e1"  # neutral default — visible on dark bg
-    move = ""
+    arrow = ""
+    ref = ""
     if first_odds and abs(odds - first_odds) >= 0.03:
         if odds > first_odds:
             odds_color = "#4ade80"  # green: odds went up (better)
-            move = f'<span style="color:#94a3b8;font-size:.75em"> ↑{first_odds:.2f}</span>'
+            arrow = "↑"
+            ref = f'<span style="color:#64748b;font-size:.75em"> {first_odds:.2f}</span>'
         else:
             odds_color = "#f87171"  # red: odds went down (worse)
-            move = f'<span style="color:#94a3b8;font-size:.75em"> ↓{first_odds:.2f}</span>'
+            arrow = "↓"
+            ref = f'<span style="color:#64748b;font-size:.75em"> {first_odds:.2f}</span>'
 
     if ev > 0:
         # PEV cell — highlight
@@ -153,17 +156,17 @@ def _ev_cell(opta, odds, first_odds, is_best_pev):
         return (
             f'<td style="{bg};font-weight:bold">'
             f'<span style="color:{ev_color(ev)};font-size:1.05em">{ev_str}{star}</span>'
-            f'<br><span style="color:{odds_color};font-size:.8em">{odds:.2f}{move}</span>'
+            f'<br><span style="color:{odds_color};font-size:.8em">{arrow}{odds:.2f}{ref}</span>'
             f'<br><span style="color:#94a3b8;font-size:.75em">{opta:.1f}%</span>'
             f'</td>'
         )
     else:
         # Negative EV — dimmed but readable
-        neg_odds_color = odds_color if move else "#94a3b8"
+        neg_odds_color = odds_color if arrow else "#94a3b8"
         return (
             f'<td style="color:#94a3b8">'
             f'<span style="font-size:.9em">{ev_str}</span>'
-            f'<br><span style="color:{neg_odds_color};font-size:.8em">{odds:.2f}{move}</span>'
+            f'<br><span style="color:{neg_odds_color};font-size:.8em">{arrow}{odds:.2f}{ref}</span>'
             f'<br><span style="color:#64748b;font-size:.75em">{opta:.1f}%</span>'
             f'</td>'
         )
