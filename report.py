@@ -216,9 +216,9 @@ def build_value_table(bets):
         row_bg = ev_bg(ev_vals.get(best_side)) if best_side else ""
         rows += f"""
         <tr style="{row_bg}">
+          <td><strong>{b['home_display']}</strong><br><span style="color:#64748b;font-size:.85em">vs {b['away_display']}</span></td>
           <td>{comp_flag(b['comp'])} {b['league_display']}</td>
           <td>{hora_cell}</td>
-          <td><strong>{b['home_display']}</strong><br><span style="color:#64748b;font-size:.85em">vs {b['away_display']}</span></td>
           {cell_l}
           {cell_e}
           {cell_v}
@@ -236,7 +236,7 @@ def build_value_table(bets):
     </div>
     <table>
       <thead><tr>
-        <th>Liga</th><th>Fecha</th><th>Partido</th>
+        <th>Partido</th><th>Torneo</th><th>Fecha</th>
         <th>Local</th><th>Empate</th><th>Visitante</th>
       </tr></thead>
       <tbody>{rows}</tbody>
@@ -313,9 +313,9 @@ def build_results_table(results):
         hora_cell = f'{r["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else r["match_date"]
         rows += f"""
         <tr>
+          <td>{r['home_display']} vs {r['away_display']}</td>
           <td>{comp_flag(r['comp'])} {r['league_display']}</td>
           <td>{hora_cell}</td>
-          <td>{r['home_display']} vs {r['away_display']}</td>
           <td style="font-weight:bold;font-size:1.1em">{score}</td>
           <td>{bet_cells}</td>
         </tr>"""
@@ -345,7 +345,7 @@ def build_results_table(results):
     return summary + f"""
     <table>
       <thead><tr>
-        <th>Liga</th><th>Fecha</th><th>Partido</th>
+        <th>Partido</th><th>Torneo</th><th>Fecha</th>
         <th>Resultado</th><th>Apuestas PEV → P&L</th>
       </tr></thead>
       <tbody>{rows}</tbody>
