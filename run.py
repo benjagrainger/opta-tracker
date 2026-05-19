@@ -89,9 +89,12 @@ def scrape():
                 fixture = find_fixture(fixtures, m["home"], m["away"], expected_date=date_str)
                 if fixture:
                     af_id = fixture["fixture"]["id"]
+                    h_name = fixture["teams"]["home"]["name"]
+                    a_name = fixture["teams"]["away"]["name"]
+                    lg_name = fixture.get("league", {}).get("name", "")
                     conn.execute(
-                        "UPDATE predictions SET apifootball_id=? WHERE id=?",
-                        (af_id, pred_id)
+                        "UPDATE predictions SET apifootball_id=?, home_name=?, away_name=?, league_name=? WHERE id=?",
+                        (af_id, h_name, a_name, lg_name, pred_id)
                     )
 
             # Fetch and store current odds from API Football
@@ -202,6 +205,44 @@ def _print_pev_bets():
               f"{c['opta_pct']:>6.1f} {c['cuota']:>6.2f} {c['ev']:>+7.1%}")
 
 
+def backfill_names():
+    """
+    Retroactively fill home_name/away_name/league_name for predictions
+    that have an apifootball_id but no team names yet.
+    Uses GET /fixtures?id={id} — one call per prediction.
+    """
+    from apifootball import _get, BASE_URL
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT id, apifootball_id FROM predictions
+            WHERE apifootball_id IS NOT NULL AND home_name IS NULL
+        """).fetchall()
+
+    if not rows:
+        print("  backfill_names: nada que actualizar")
+        return
+
+    print(f"  backfill_names: {len(rows)} predicciones sin nombre...")
+    updated = 0
+    with get_conn() as conn:
+        for r in rows:
+            time.sleep(0.3)
+            data = _get(f"{BASE_URL}/fixtures?id={r['apifootball_id']}")
+            fixtures = data.get("response", [])
+            if not fixtures:
+                continue
+            f = fixtures[0]
+            h_name  = f["teams"]["home"]["name"]
+            a_name  = f["teams"]["away"]["name"]
+            lg_name = f.get("league", {}).get("name", "")
+            conn.execute(
+                "UPDATE predictions SET home_name=?, away_name=?, league_name=? WHERE id=?",
+                (h_name, a_name, lg_name, r["id"])
+            )
+            updated += 1
+    print(f"  backfill_names: {updated} registros actualizados")
+
+
 if __name__ == "__main__":
     init_db()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
@@ -212,3 +253,6 @@ if __name__ == "__main__":
         update_results()
     if cmd in ("report", "all"):
         print_report()
+    if cmd == "backfill_names":
+        backfill_names()
+        generate_html()

@@ -57,6 +57,9 @@ def init_db():
         for migration in [
             "ALTER TABLE predictions ADD COLUMN apifootball_id INTEGER",
             "ALTER TABLE odds ADD COLUMN is_bet_snapshot INTEGER DEFAULT 0",
+            "ALTER TABLE predictions ADD COLUMN home_name TEXT",
+            "ALTER TABLE predictions ADD COLUMN away_name TEXT",
+            "ALTER TABLE predictions ADD COLUMN league_name TEXT",
         ]:
             try:
                 conn.execute(migration)

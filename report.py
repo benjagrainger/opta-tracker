@@ -25,7 +25,11 @@ def load_data():
     with get_conn() as conn:
         # Current value bets: latest odds + first odds per prediction (for movement)
         value_bets = conn.execute("""
-            SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
+            SELECT p.comp, p.home, p.away,
+                   COALESCE(p.home_name, p.home) AS home_display,
+                   COALESCE(p.away_name, p.away) AS away_display,
+                   COALESCE(p.league_name, p.comp) AS league_display,
+                   p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
                    o.fetched_at,
@@ -44,7 +48,11 @@ def load_data():
         #                'approx'   (any 22-23h odds day before)    |
         #                'early'    (odds from >1 day before match)
         results = conn.execute("""
-            SELECT p.comp, p.home, p.away, p.match_date, p.match_time_utc,
+            SELECT p.comp, p.home, p.away,
+                   COALESCE(p.home_name, p.home) AS home_display,
+                   COALESCE(p.away_name, p.away) AS away_display,
+                   COALESCE(p.league_name, p.comp) AS league_display,
+                   p.match_date, p.match_time_utc,
                    p.prob_home, p.prob_draw, p.prob_away,
                    o.odds_home, o.odds_draw, o.odds_away,
                    r.home_score, r.away_score, r.outcome,
@@ -204,9 +212,9 @@ def build_value_table(bets):
         row_bg = ev_bg(ev_vals.get(best_side)) if best_side else ""
         rows += f"""
         <tr style="{row_bg}">
-          <td>{comp_flag(b['comp'])} {b['comp']}</td>
+          <td>{comp_flag(b['comp'])} {b['league_display']}</td>
           <td>{hora_cell}</td>
-          <td><strong>{b['home']}</strong><br><span style="color:#64748b;font-size:.85em">vs {b['away']}</span></td>
+          <td><strong>{b['home_display']}</strong><br><span style="color:#64748b;font-size:.85em">vs {b['away_display']}</span></td>
           {cell_l}
           {cell_e}
           {cell_v}
@@ -301,9 +309,9 @@ def build_results_table(results):
         hora_cell = f'{r["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else r["match_date"]
         rows += f"""
         <tr>
-          <td>{comp_flag(r['comp'])} {r['comp']}</td>
+          <td>{comp_flag(r['comp'])} {r['league_display']}</td>
           <td>{hora_cell}</td>
-          <td>{r['home']} vs {r['away']}</td>
+          <td>{r['home_display']} vs {r['away_display']}</td>
           <td style="font-weight:bold;font-size:1.1em">{score}</td>
           <td>{bet_cells}</td>
         </tr>"""
