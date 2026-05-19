@@ -112,77 +112,120 @@ def comp_flag(comp):
     return flags.get(comp, "⚽")
 
 
+def _ev_cell(opta, odds, first_odds, is_best_pev):
+    """Render a single EV cell (Local / Empate / Visitante)."""
+    if not opta or not odds or odds < 1.02 or odds > 25:
+        return '<td style="color:#334155">—</td>'
+    ev = (opta / 100) * odds - 1
+    if ev > 1.0:
+        return '<td style="color:#334155">—</td>'  # corrupted data
+
+    ev_str = f"{ev:+.1%}"
+
+    # Odds movement arrow
+    move = ""
+    if first_odds and abs(odds - first_odds) >= 0.03:
+        if odds > first_odds:
+            move = f'<span style="color:#4ade80;font-size:.75em"> ↑{first_odds:.2f}</span>'
+        else:
+            move = f'<span style="color:#f87171;font-size:.75em"> ↓{first_odds:.2f}</span>'
+
+    if ev > 0:
+        # PEV cell — highlight
+        star = " ★" if is_best_pev else ""
+        bg = "background:rgba(22,163,74,0.22)" if is_best_pev else "background:rgba(22,163,74,0.10)"
+        return (
+            f'<td style="{bg};font-weight:bold">'
+            f'<span style="color:{ev_color(ev)};font-size:1.05em">{ev_str}{star}</span>'
+            f'<br><span style="color:#94a3b8;font-size:.8em">{odds:.2f}{move}</span>'
+            f'<br><span style="color:#64748b;font-size:.75em">{opta:.0f}%</span>'
+            f'</td>'
+        )
+    else:
+        # Negative EV — muted
+        return (
+            f'<td style="color:#475569">'
+            f'<span style="font-size:.9em">{ev_str}</span>'
+            f'<br><span style="color:#334155;font-size:.8em">{odds:.2f}{move}</span>'
+            f'<br><span style="color:#293548;font-size:.75em">{opta:.0f}%</span>'
+            f'</td>'
+        )
+
+
 def build_value_table(bets):
-    """Builds table of matches with at least one side with EV > 0."""
-    candidates = []
-    for b in bets:
+    """Builds table of ALL upcoming matches with EV per outcome. PEV cells highlighted."""
+    if not bets:
+        return '<p style="color:#64748b;padding:20px">No hay partidos en el ticker. Esperá al próximo scrape.</p>'
+
+    # Pre-sort: matches with PEV first, then by date/time
+    def match_sort_key(b):
+        evs = []
+        for opta, odds in [(b["prob_home"], b["odds_home"]),
+                           (b["prob_draw"], b["odds_draw"]),
+                           (b["prob_away"], b["odds_away"])]:
+            if opta and odds and 1.02 <= odds <= 25:
+                ev = (opta / 100) * odds - 1
+                if 0 < ev <= 1.0:
+                    evs.append(ev)
+        has_pev = 1 if evs else 0
+        best_ev = max(evs) if evs else 0
+        return (-has_pev, -best_ev, b["match_date"], b.get("match_time_utc") or "")
+
+    sorted_bets = sorted(bets, key=match_sort_key)
+
+    rows = ""
+    pev_count = 0
+    for b in sorted_bets:
+        hora = utc_to_chile(b.get("match_time_utc"))
+        hora_cell = (
+            f'{b["match_date"]}<br>'
+            f'<span style="color:#64748b;font-size:.82em">{hora} hs CL</span>'
+        ) if hora else b["match_date"]
+
+        # Compute EVs to find best PEV side
+        ev_vals = {}
         for side, opta, odds in [
             ("L", b["prob_home"], b["odds_home"]),
             ("E", b["prob_draw"], b["odds_draw"]),
             ("V", b["prob_away"], b["odds_away"]),
         ]:
-            if not opta or not odds:
-                continue
-            if odds < 1.02 or odds > 25:
-                continue  # sanity: implausible odds → wrong market data
-            ev = (opta / 100) * odds - 1
-            if ev <= 0 or ev > 1.0:
-                continue  # EV > 100% = corrupted data
-            team = b["home"] if side == "L" else (b["away"] if side == "V" else "Empate")
-            candidates.append({
-                    **b,
-                    "side": side,
-                    "team": team,
-                    "opta": opta,
-                    "odds": odds,
-                    "ev": ev,
-                })
+            if opta and odds and 1.02 <= odds <= 25:
+                ev = (opta / 100) * odds - 1
+                if 0 < ev <= 1.0:
+                    ev_vals[side] = ev
+        best_side = max(ev_vals, key=ev_vals.get) if ev_vals else None
+        if ev_vals:
+            pev_count += 1
 
-    # Keep only highest-EV bet per match
-    best = {}
-    for c in candidates:
-        key = (c["match_date"], c["home"], c["away"])
-        if key not in best or c["ev"] > best[key]["ev"]:
-            best[key] = c
-    candidates = sorted(best.values(), key=lambda x: (x["match_date"], x.get("match_time_utc") or "", -x["ev"]))
+        cell_l = _ev_cell(b["prob_home"], b["odds_home"], b.get("first_odds_home"), best_side == "L")
+        cell_e = _ev_cell(b["prob_draw"], b["odds_draw"], b.get("first_odds_draw"), best_side == "E")
+        cell_v = _ev_cell(b["prob_away"], b["odds_away"], b.get("first_odds_away"), best_side == "V")
 
-    if not candidates:
-        return '<p style="color:#64748b;padding:20px">No hay apuestas con PEV. Esperá al próximo scrape.</p>'
-
-    rows = ""
-    for c in candidates:
-        ev_str = f"{c['ev']:+.1%}"
-        side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}[c["side"]]
-        hora = utc_to_chile(c.get("match_time_utc"))
-        hora_cell = f'{c["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else c["match_date"]
-
-        # Odds movement indicator
-        side_key = {"L": "home", "E": "draw", "V": "away"}[c["side"]]
-        first_odds = c.get(f"first_odds_{side_key}")
-        if first_odds and abs(c["odds"] - first_odds) >= 0.03:
-            if c["odds"] > first_odds:
-                move = f'<span style="color:#4ade80;font-size:.8em"> ↑{first_odds:.2f}</span>'
-            else:
-                move = f'<span style="color:#f87171;font-size:.8em"> ↓{first_odds:.2f}</span>'
-        else:
-            move = ""
-
+        row_bg = ev_bg(ev_vals.get(best_side)) if best_side else ""
         rows += f"""
-        <tr style="{ev_bg(c['ev'])}">
-          <td>{comp_flag(c['comp'])} {c['comp']}</td>
+        <tr style="{row_bg}">
+          <td>{comp_flag(b['comp'])} {b['comp']}</td>
           <td>{hora_cell}</td>
-          <td><strong>{c['home']}</strong> vs <strong>{c['away']}</strong></td>
-          <td>{side_label}: <strong>{c['team']}</strong></td>
-          <td style="font-size:1.1em;font-weight:bold">{c['odds']:.2f}{move}</td>
-          <td>{c['opta']:.1f}%</td>
-          <td style="color:{ev_color(c['ev'])};font-weight:bold;font-size:1.1em">{ev_str}</td>
+          <td><strong>{b['home']}</strong><br><span style="color:#64748b;font-size:.85em">vs {b['away']}</span></td>
+          {cell_l}
+          {cell_e}
+          {cell_v}
         </tr>"""
 
+    total = len(sorted_bets)
+    pev_note = (
+        f'<span style="color:#4ade80;font-weight:bold">{pev_count} con PEV ★</span>'
+        f' · <span style="color:#475569">{total - pev_count} sin valor</span>'
+    )
     return f"""
+    <div style="padding:10px 20px;background:#0f172a;border-bottom:1px solid #334155;
+                font-size:.82em;color:#64748b">
+      {total} partidos analizados · {pev_note}
+    </div>
     <table>
       <thead><tr>
-        <th>Liga</th><th>Fecha</th><th>Partido</th><th>Apuesta</th>
-        <th>Cuota</th><th>Opta %</th><th>EV</th>
+        <th>Liga</th><th>Fecha</th><th>Partido</th>
+        <th>Local</th><th>Empate</th><th>Visitante</th>
       </tr></thead>
       <tbody>{rows}</tbody>
     </table>"""
@@ -375,17 +418,17 @@ def generate():
   <div class="section">
     <div class="section-header">
       <div class="dot"></div>
-      <h2>Apuestas con valor esperado positivo (cuota 8pm Chile)</h2>
+      <h2>Partidos analizados — EV por resultado (★ = apuesta recomendada)</h2>
     </div>
     <div class="section-body">
       {build_value_table(bets)}
     </div>
     <div class="legend">
-      <span>EV = retorno esperado si la prob. de Opta es correcta</span>
+      <span>Cada celda: EV · cuota actual · % Opta</span>
       <span>·</span>
-      <span>Cuota: actual · <span style="color:#4ade80">↑ número</span> = subió desde primera detección (mejor) · <span style="color:#f87171">↓ número</span> = bajó (mercado corrigió)</span>
+      <span>★ = mejor apuesta del partido (mayor PEV)</span>
       <span>·</span>
-      <span>Odds lockeadas a las 8pm Chile del día anterior</span>
+      <span><span style="color:#4ade80">↑ cuota</span> = subió desde 1ª detección (mejor) · <span style="color:#f87171">↓ cuota</span> = bajó (mercado corrigió)</span>
     </div>
   </div>
 
