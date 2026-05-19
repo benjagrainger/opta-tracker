@@ -250,9 +250,6 @@ def build_results_table(results):
 
     total_pl = 0.0
     total_bets = 0
-    official_bets = 0   # is_bet_snapshot=1, day before
-    approx_bets  = 0    # 22-23h odds, day before
-    early_bets   = 0    # odds from >1 day before (less reliable)
     rows = ""
 
     for r in results:
@@ -283,18 +280,8 @@ def build_results_table(results):
         pev_bets = [best_bet]
         total_pl += best_bet["pl"]
         total_bets += 1
-        stype = r.get("snapshot_type", "early")
-        if stype == "official":   official_bets += 1
-        elif stype == "approx":   approx_bets   += 1
-        else:                     early_bets    += 1
 
         # Build bet display
-        stype = r.get("snapshot_type", "early")
-        snapshot_icon = {
-            "official": '<span title="Cuota oficial 8pm Chile del día anterior" style="font-size:.8em">📸</span>',
-            "approx":   '<span title="Cuota ventana 22-23h del día anterior" style="font-size:.8em;opacity:.7">🕐</span>',
-            "early":    '<span title="Cuota capturada con más de 1 día de anticipación" style="font-size:.8em;opacity:.6">🕓</span>',
-        }[stype]
         bet_cells = ""
         for b in pev_bets:
             side_name = {"L": "L", "E": "E", "V": "V"}[b["side"]]
@@ -302,7 +289,7 @@ def build_results_table(results):
             pl_color = "#16a34a" if b["pl"] > 0 else "#dc2626"
             pl_str = f"+{b['pl']:.2f}u" if b["pl"] > 0 else f"{b['pl']:.2f}u"
             bet_cells += (
-                f'{snapshot_icon} <span style="color:{pl_color};margin-right:10px">'
+                f'<span style="color:{pl_color};margin-right:10px">'
                 f'{icon} {side_name}@{b["odds"]:.2f} <strong>{pl_str}</strong></span>'
             )
 
@@ -320,22 +307,13 @@ def build_results_table(results):
 
     # Summary bar
     roi = (total_pl / total_bets) if total_bets else 0
-    pl_color = "#16a34a" if roi >= 0 else "#dc2626"
-    pl_str = f"{roi:+.1%}"
-    # Build snapshot quality breakdown note
-    quality_parts = []
-    if official_bets: quality_parts.append(f"📸 {official_bets} oficial")
-    if approx_bets:   quality_parts.append(f"🕐 {approx_bets} aprox.")
-    if early_bets:    quality_parts.append(f"🕓 {early_bets} anticipado")
-    quality_note = (
-        f' <span style="color:#64748b;font-size:.8em">({" · ".join(quality_parts)})</span>'
-        if quality_parts else ""
-    )
+    roi_color = "#16a34a" if roi >= 0 else "#dc2626"
+    roi_str = f"{roi:+.1%}"
     summary = f"""
     <div style="padding:14px 20px;background:#0f172a;border-bottom:1px solid #334155;
                 display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-      <span style="color:#94a3b8">{total_bets} apuestas PEV{quality_note}</span>
-      <span>Rendimiento: <strong style="color:{pl_color};font-size:1.2em">{pl_str}</strong></span>
+      <span style="color:#94a3b8">{total_bets} apuestas PEV</span>
+      <span>Rendimiento: <strong style="color:{roi_color};font-size:1.2em">{roi_str}</strong></span>
       <span style="color:#64748b;font-size:.8em">ROI por apuesta · 📸 = cuota 8pm Chile día anterior</span>
     </div>""" if total_bets else ""
 
