@@ -45,6 +45,7 @@ def load_data():
             JOIN odds o ON o.id = (SELECT MAX(id) FROM odds WHERE prediction_id = p.id)
             LEFT JOIN odds of ON of.id = (SELECT MIN(id) FROM odds WHERE prediction_id = p.id)
             WHERE p.id NOT IN (SELECT prediction_id FROM results)
+              AND (p.match_date || ' ' || COALESCE(p.match_time_utc, '23:59')) > datetime('now')
             ORDER BY p.match_date, p.match_time_utc, p.home
         """).fetchall()
 
