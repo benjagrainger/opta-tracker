@@ -146,7 +146,7 @@ def _ev_cell(opta, odds, first_odds, is_best_pev):
             f'<td style="{bg};font-weight:bold">'
             f'<span style="color:{ev_color(ev)};font-size:1.05em">{ev_str}{star}</span>'
             f'<br><span style="color:#94a3b8;font-size:.8em">{odds:.2f}{move}</span>'
-            f'<br><span style="color:#64748b;font-size:.75em">{opta:.0f}%</span>'
+            f'<br><span style="color:#64748b;font-size:.75em">{opta:.1f}%</span>'
             f'</td>'
         )
     else:
