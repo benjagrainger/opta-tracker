@@ -293,7 +293,7 @@ def build_results_table(results):
         snapshot_icon = {
             "official": '<span title="Cuota oficial 8pm Chile del día anterior" style="font-size:.8em">📸</span>',
             "approx":   '<span title="Cuota ventana 22-23h del día anterior" style="font-size:.8em;opacity:.7">🕐</span>',
-            "early":    '<span title="Cuota capturada con más de 1 día de anticipación" style="font-size:.8em;opacity:.6">⚠️</span>',
+            "early":    '<span title="Cuota capturada con más de 1 día de anticipación" style="font-size:.8em;opacity:.6">🕓</span>',
         }[stype]
         bet_cells = ""
         for b in pev_bets:
@@ -326,7 +326,7 @@ def build_results_table(results):
     quality_parts = []
     if official_bets: quality_parts.append(f"📸 {official_bets} oficial")
     if approx_bets:   quality_parts.append(f"🕐 {approx_bets} aprox.")
-    if early_bets:    quality_parts.append(f"⚠️ {early_bets} anticipado")
+    if early_bets:    quality_parts.append(f"🕓 {early_bets} anticipado")
     quality_note = (
         f' <span style="color:#64748b;font-size:.8em">({" · ".join(quality_parts)})</span>'
         if quality_parts else ""
