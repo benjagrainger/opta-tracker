@@ -319,8 +319,9 @@ def build_results_table(results):
         </tr>"""
 
     # Summary bar
-    pl_color = "#16a34a" if total_pl >= 0 else "#dc2626"
-    pl_str = f"+{total_pl:.2f}u" if total_pl >= 0 else f"{total_pl:.2f}u"
+    roi = (total_pl / total_bets) if total_bets else 0
+    pl_color = "#16a34a" if roi >= 0 else "#dc2626"
+    pl_str = f"{roi:+.1%}"
     # Build snapshot quality breakdown note
     quality_parts = []
     if official_bets: quality_parts.append(f"📸 {official_bets} oficial")
@@ -334,8 +335,8 @@ def build_results_table(results):
     <div style="padding:14px 20px;background:#0f172a;border-bottom:1px solid #334155;
                 display:flex;align-items:center;gap:24px;flex-wrap:wrap">
       <span style="color:#94a3b8">{total_bets} apuestas PEV{quality_note}</span>
-      <span>P&amp;L total: <strong style="color:{pl_color};font-size:1.2em">{pl_str}</strong></span>
-      <span style="color:#64748b;font-size:.8em">1 unidad por apuesta · 📸 = cuota 8pm Chile día anterior</span>
+      <span>Rendimiento: <strong style="color:{pl_color};font-size:1.2em">{pl_str}</strong></span>
+      <span style="color:#64748b;font-size:.8em">ROI por apuesta · 📸 = cuota 8pm Chile día anterior</span>
     </div>""" if total_bets else ""
 
     return summary + f"""
