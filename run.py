@@ -92,9 +92,13 @@ def scrape():
                     h_name = fixture["teams"]["home"]["name"]
                     a_name = fixture["teams"]["away"]["name"]
                     lg_name = fixture.get("league", {}).get("name", "")
+                    # True UTC kick-off from API Football (overrides Opta Eastern time)
+                    af_date = fixture.get("fixture", {}).get("date", "")
+                    af_time_utc = af_date[11:16] if len(af_date) >= 16 else None
                     conn.execute(
-                        "UPDATE predictions SET apifootball_id=?, home_name=?, away_name=?, league_name=? WHERE id=?",
-                        (af_id, h_name, a_name, lg_name, pred_id)
+                        "UPDATE predictions SET apifootball_id=?, home_name=?, away_name=?, league_name=?"
+                        + (", match_time_utc=?" if af_time_utc else "") + " WHERE id=?",
+                        (af_id, h_name, a_name, lg_name) + ((af_time_utc,) if af_time_utc else ()) + (pred_id,)
                     )
 
             # Fetch and store current odds from API Football
@@ -207,22 +211,22 @@ def _print_pev_bets():
 
 def backfill_names():
     """
-    Retroactively fill home_name/away_name/league_name for predictions
-    that have an apifootball_id but no team names yet.
+    Fill home_name/away_name/league_name/match_time_utc (true UTC from API Football)
+    for all predictions that have an apifootball_id.
     Uses GET /fixtures?id={id} — one call per prediction.
     """
     from apifootball import _get, BASE_URL
     with get_conn() as conn:
         rows = conn.execute("""
             SELECT id, apifootball_id FROM predictions
-            WHERE apifootball_id IS NOT NULL AND home_name IS NULL
+            WHERE apifootball_id IS NOT NULL
         """).fetchall()
 
     if not rows:
         print("  backfill_names: nada que actualizar")
         return
 
-    print(f"  backfill_names: {len(rows)} predicciones sin nombre...")
+    print(f"  backfill_names: actualizando {len(rows)} predicciones...")
     updated = 0
     with get_conn() as conn:
         for r in rows:
@@ -235,9 +239,13 @@ def backfill_names():
             h_name  = f["teams"]["home"]["name"]
             a_name  = f["teams"]["away"]["name"]
             lg_name = f.get("league", {}).get("name", "")
+            # True UTC kick-off time (overrides Eastern time stored by Opta scraper)
+            af_date = f.get("fixture", {}).get("date", "")
+            af_time_utc = af_date[11:16] if len(af_date) >= 16 else None
             conn.execute(
-                "UPDATE predictions SET home_name=?, away_name=?, league_name=? WHERE id=?",
-                (h_name, a_name, lg_name, r["id"])
+                "UPDATE predictions SET home_name=?, away_name=?, league_name=?"
+                + (", match_time_utc=?" if af_time_utc else "") + " WHERE id=?",
+                (h_name, a_name, lg_name) + ((af_time_utc,) if af_time_utc else ()) + (r["id"],)
             )
             updated += 1
     print(f"  backfill_names: {updated} registros actualizados")

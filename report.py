@@ -4,13 +4,18 @@ from pathlib import Path
 from db import get_conn
 
 
-def utc_to_chile(time_str):
-    """Convert 'HH:MM' UTC to Chile time (UTC-3). Returns 'HH:MM' or '' if missing."""
+def utc_to_chile(time_str, date_str=None):
+    """Convert 'HH:MM' UTC to Chile time.
+    Apr–Sep: CLT (UTC-4) · Oct–Mar: CLST (UTC-3)
+    date_str='YYYY-MM-DD' lets us use the match's month; falls back to today.
+    """
     if not time_str:
         return ""
     try:
         h, m = map(int, time_str.split(":"))
-        t = timedelta(hours=h, minutes=m) - timedelta(hours=3)
+        month = int(date_str[5:7]) if date_str else datetime.now().month
+        offset = 4 if 4 <= month <= 9 else 3   # CLT vs CLST
+        t = timedelta(hours=h, minutes=m) - timedelta(hours=offset)
         total = int(t.total_seconds())
         if total < 0:
             total += 86400
@@ -188,7 +193,7 @@ def build_value_table(bets):
     rows = ""
     pev_count = 0
     for b in sorted_bets:
-        hora = utc_to_chile(b.get("match_time_utc"))
+        hora = utc_to_chile(b.get("match_time_utc"), b.get("match_date"))
         hora_cell = (
             f'{b["match_date"]}<br>'
             f'<span style="color:#64748b;font-size:.82em">{hora} hs CL</span>'
@@ -294,7 +299,7 @@ def build_results_table(results):
             )
 
         score = f"{r['home_score']}-{r['away_score']}"
-        hora = utc_to_chile(r.get("match_time_utc"))
+        hora = utc_to_chile(r.get("match_time_utc"), r.get("match_date"))
         hora_cell = f'{r["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else r["match_date"]
         rows += f"""
         <tr>
