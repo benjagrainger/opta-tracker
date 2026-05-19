@@ -253,7 +253,6 @@ def build_results_table(results):
     official_bets = 0   # is_bet_snapshot=1, day before
     approx_bets  = 0    # 22-23h odds, day before
     early_bets   = 0    # odds from >1 day before (less reliable)
-    wins = 0
     rows = ""
 
     for r in results:
@@ -288,7 +287,6 @@ def build_results_table(results):
         if stype == "official":   official_bets += 1
         elif stype == "approx":   approx_bets   += 1
         else:                     early_bets    += 1
-        if won: wins += 1
 
         # Build bet display
         stype = r.get("snapshot_type", "early")
@@ -323,7 +321,6 @@ def build_results_table(results):
     # Summary bar
     pl_color = "#16a34a" if total_pl >= 0 else "#dc2626"
     pl_str = f"+{total_pl:.2f}u" if total_pl >= 0 else f"{total_pl:.2f}u"
-    win_rate = f"{wins/total_bets:.0%}" if total_bets else "—"
     # Build snapshot quality breakdown note
     quality_parts = []
     if official_bets: quality_parts.append(f"📸 {official_bets} oficial")
@@ -337,9 +334,8 @@ def build_results_table(results):
     <div style="padding:14px 20px;background:#0f172a;border-bottom:1px solid #334155;
                 display:flex;align-items:center;gap:24px;flex-wrap:wrap">
       <span style="color:#94a3b8">{total_bets} apuestas PEV{quality_note}</span>
-      <span style="color:#94a3b8">{wins} wins / {total_bets - wins} losses ({win_rate})</span>
       <span>P&amp;L total: <strong style="color:{pl_color};font-size:1.2em">{pl_str}</strong></span>
-      <span style="color:#475569;font-size:.8em">1 unidad por apuesta · 📸 = cuota 8pm Chile día anterior</span>
+      <span style="color:#64748b;font-size:.8em">1 unidad por apuesta · 📸 = cuota 8pm Chile día anterior</span>
     </div>""" if total_bets else ""
 
     return summary + f"""
