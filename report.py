@@ -216,7 +216,7 @@ def build_value_table(bets):
         row_bg = ev_bg(ev_vals.get(best_side)) if best_side else ""
         rows += f"""
         <tr style="{row_bg}">
-          <td><strong>{b['home_display']}</strong><br><span style="color:#64748b;font-size:.85em">vs {b['away_display']}</span></td>
+          <td>{b['home_display']}<br><span style="color:#64748b;font-size:.8em">vs</span> {b['away_display']}</td>
           <td>{comp_flag(b['comp'])} {b['league_display']}</td>
           <td>{hora_cell}</td>
           {cell_l}
@@ -313,7 +313,7 @@ def build_results_table(results):
         hora_cell = f'{r["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else r["match_date"]
         rows += f"""
         <tr>
-          <td>{r['home_display']} vs {r['away_display']}</td>
+          <td>{r['home_display']}<br><span style="color:#64748b;font-size:.8em">vs</span> {r['away_display']}</td>
           <td>{comp_flag(r['comp'])} {r['league_display']}</td>
           <td>{hora_cell}</td>
           <td style="font-weight:bold;font-size:1.1em">{score}</td>
