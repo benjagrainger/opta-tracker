@@ -2,9 +2,8 @@ name: Opta Tracker
 
 on:
   schedule:
-    - cron: '0 11 * * *'   # 8am Chile (UTC-3)
-    - cron: '0 17 * * *'   # 2pm Chile
-    - cron: '0 23 * * *'   # 8pm Chile
+    - cron: '0 * * * *'    # scrape cada hora
+    - cron: '15 11 * * *'  # resultados una vez al día (8:15am Chile)
   workflow_dispatch:        # también se puede correr manualmente
 
 permissions:
@@ -46,7 +45,7 @@ jobs:
 
   results:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 11 * * *'   # solo una vez al día
+    if: github.event.schedule == '15 11 * * *' || github.event_name == 'workflow_dispatch'
     needs: scrape
     steps:
 

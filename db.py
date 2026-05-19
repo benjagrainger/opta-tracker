@@ -44,6 +44,15 @@ CREATE TABLE IF NOT EXISTS results (
     outcome         TEXT,                   -- H / D / A
     updated_at      TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS prob_history (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    prediction_id   INTEGER NOT NULL REFERENCES predictions(id),
+    scraped_at      TEXT NOT NULL,
+    prob_home       REAL NOT NULL,
+    prob_draw       REAL NOT NULL,
+    prob_away       REAL NOT NULL
+);
 """
 
 def get_conn():

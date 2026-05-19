@@ -47,7 +47,8 @@ def scrape():
 
             # Upsert prediction
             existing = conn.execute(
-                "SELECT id, apifootball_id FROM predictions WHERE match_date=? AND home=? AND away=?",
+                "SELECT id, apifootball_id, prob_home, prob_draw, prob_away "
+                "FROM predictions WHERE match_date=? AND home=? AND away=?",
                 (date_str, m["home"], m["away"])
             ).fetchone()
 
@@ -55,7 +56,16 @@ def scrape():
                 pred_id = existing["id"]
                 af_id = existing["apifootball_id"]
                 skipped += 1
-                # Opta probabilities change over time — always update to latest
+                # Record history only when probs actually changed
+                if (existing["prob_home"] != m["prob_home"] or
+                        existing["prob_draw"] != m["prob_draw"] or
+                        existing["prob_away"] != m["prob_away"]):
+                    conn.execute(
+                        "INSERT INTO prob_history (prediction_id, scraped_at, prob_home, prob_draw, prob_away) "
+                        "VALUES (?,?,?,?,?)",
+                        (pred_id, NOW, m["prob_home"], m["prob_draw"], m["prob_away"])
+                    )
+                # Always update to latest
                 conn.execute(
                     "UPDATE predictions SET prob_home=?, prob_draw=?, prob_away=? WHERE id=?",
                     (m["prob_home"], m["prob_draw"], m["prob_away"], pred_id)
@@ -72,6 +82,12 @@ def scrape():
                 )
                 pred_id = cur.lastrowid
                 saved += 1
+                # Record initial probabilities
+                conn.execute(
+                    "INSERT INTO prob_history (prediction_id, scraped_at, prob_home, prob_draw, prob_away) "
+                    "VALUES (?,?,?,?,?)",
+                    (pred_id, NOW, m["prob_home"], m["prob_draw"], m["prob_away"])
+                )
 
             # Resolve API Football fixture ID (look up if not yet stored)
             if not af_id:
