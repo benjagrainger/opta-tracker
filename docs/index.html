@@ -13,400 +13,292 @@
     --red:#f85149; --yellow:#d29922;
     --text:#e6edf3; --muted:#8b949e; --dim:#484f58;
   }
-  *{ box-sizing:border-box; margin:0; padding:0 }
-  body{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
-        background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5 }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
+         background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5 }
 
-  /* ── HERO ── */
-  .hero{ padding:48px 32px 28px; max-width:1100px; margin:0 auto }
-  .hero-eyebrow{ font-size:.72em; font-weight:700; letter-spacing:.14em;
-                 color:var(--green); text-transform:uppercase; margin-bottom:10px }
-  .hero h1{ font-size:2.2em; font-weight:800; line-height:1.15; margin-bottom:10px }
-  .hero p{ font-size:.95em; color:var(--muted); max-width:560px; line-height:1.65 }
-  .hero-meta{ display:flex; gap:24px; margin-top:20px; flex-wrap:wrap;
-              font-size:.78em; color:var(--muted) }
-  .hero-meta span{ display:flex; align-items:center; gap:5px }
-  .dot-live{ width:7px; height:7px; border-radius:50%; background:var(--green);
-             box-shadow:0 0 6px var(--green); animation:blink 2s infinite }
-  @keyframes blink{ 0%,100%{opacity:1}50%{opacity:.3} }
+  /* ── LAYOUT ── */
+  .container { max-width:1100px; margin:0 auto; padding:0 24px }
 
-  /* ── CONTAINER ── */
-  .wrap{ max-width:1100px; margin:0 auto; padding:0 24px 60px }
+  /* ── HEADER ── */
+  .site-header { padding:28px 0 0 }
+  .header-inner { display:flex; justify-content:space-between; align-items:baseline;
+                  flex-wrap:wrap; gap:6px }
+  .header-title { font-size:1.1em; font-weight:800; letter-spacing:-.01em }
+  .header-title .accent { color:var(--green) }
+  .header-meta { font-size:.75em; color:var(--dim) }
+  .dot-live { display:inline-block; width:7px; height:7px; border-radius:50%;
+              background:var(--green); box-shadow:0 0 6px var(--green);
+              animation:blink 2s infinite; margin-right:4px; vertical-align:middle }
+  @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+
+  /* ── STAT BAR ── */
+  .stat-bar { background:var(--surface); border-top:1px solid var(--border2);
+              border-bottom:1px solid var(--border2); margin-top:20px }
+  .stat-inner { display:flex; align-items:center; gap:32px; flex-wrap:wrap;
+                padding:20px 0 }
+  .stat-label-small { font-size:.65em; font-weight:700; letter-spacing:.12em;
+                      text-transform:uppercase; color:var(--dim); margin-bottom:4px }
+  .stat-roi { font-size:2.2em; font-weight:800; line-height:1 }
+  .stat-meta { font-size:.82em; color:var(--muted); line-height:1.7 }
 
   /* ── SECTION LABEL ── */
-  .section-label{ font-size:.68em; font-weight:700; letter-spacing:.13em;
-                  text-transform:uppercase; color:var(--muted);
-                  margin:36px 0 14px; padding-bottom:8px;
-                  border-bottom:1px solid var(--border2) }
+  .section-label { font-size:.68em; font-weight:700; letter-spacing:.13em;
+                   text-transform:uppercase; color:var(--muted);
+                   margin:32px 0 14px; padding-bottom:8px;
+                   border-bottom:1px solid var(--border2) }
 
   /* ── PICK CARDS ── */
-  .picks-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px }
-  .pick-card{
+  .picks-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px }
+  .pick-card {
     background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; padding:18px 20px; cursor:default;
+    border-radius:10px; padding:16px 18px;
+    display:flex; flex-direction:column;
     transition:border-color .15s, transform .1s;
   }
-  .pick-card:hover{ border-color:var(--green); transform:translateY(-1px) }
-  .pick-top{ display:flex; justify-content:space-between; align-items:center;
-             font-size:.72em; color:var(--muted); margin-bottom:10px }
-  .pick-match{ font-size:1em; font-weight:600; margin-bottom:16px; line-height:1.35 }
-  .pick-match .pick-vs{ color:var(--muted); font-weight:400; font-size:.88em }
-  .pick-bottom{ display:flex; justify-content:space-between; align-items:flex-end }
-  .pick-label{ font-size:.7em; text-transform:uppercase; letter-spacing:.08em;
-               color:var(--muted); margin-bottom:2px }
-  .pick-team{ font-size:.95em; font-weight:600; color:var(--text) }
-  .pick-opta{ font-size:.72em; color:var(--dim); margin-top:3px }
-  .pick-odds{ font-size:1.9em; font-weight:800; line-height:1 }
-  .pick-ev{ font-size:.82em; font-weight:700; color:var(--green); margin-top:3px }
+  .pick-card:hover { border-color:var(--green); transform:translateY(-1px) }
+  .pick-top { display:flex; justify-content:space-between; align-items:center;
+              font-size:.72em; color:var(--muted); margin-bottom:12px }
+  .pick-teams { display:flex; flex-direction:column; gap:3px; margin-bottom:14px; flex:1 }
+  .pick-home { font-size:1em; font-weight:700 }
+  .pick-away { font-size:1em; font-weight:400; color:var(--muted) }
+  .pick-footer { display:flex; justify-content:space-between; align-items:flex-end;
+                 padding-top:12px; border-top:1px solid var(--border2) }
+  .pick-bet { display:flex; flex-direction:column; gap:2px }
+  .pick-bet-label { font-size:.62em; text-transform:uppercase; letter-spacing:.1em; color:var(--dim) }
+  .pick-bet-side { font-size:.9em; font-weight:700 }
+  .pick-opta { font-size:.7em; color:var(--muted) }
+  .pick-nums { display:flex; flex-direction:column; align-items:flex-end; gap:2px }
+  .pick-odds { font-size:1.7em; font-weight:800; line-height:1 }
+  .pick-ev { font-size:.8em; font-weight:700; color:var(--green) }
+  .empty-state { color:var(--muted); padding:28px 0; font-size:.9em; line-height:1.8 }
 
-  /* ── FULL ANALYSIS TABLE ── */
-  .table-wrap{ border-radius:8px; border:1px solid var(--border); overflow:hidden; overflow-x:auto }
-  table{ width:100%; border-collapse:collapse; font-size:.85em }
-  th{ background:var(--surface); color:var(--muted); font-weight:600;
-      text-transform:uppercase; font-size:.68em; letter-spacing:.08em;
-      padding:10px 16px; text-align:left; border-bottom:1px solid var(--border) }
-  td{ padding:11px 16px; border-bottom:1px solid var(--border2);
-      color:var(--text); vertical-align:middle }
-  tr:last-child td{ border-bottom:none }
-  tr:hover td{ background:rgba(255,255,255,.025) }
+  /* ── DETAILS / COLLAPSIBLE ── */
+  details {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; overflow:hidden;
+  }
+  details + details { margin-top:10px }
+  details summary {
+    cursor:pointer; padding:16px 20px;
+    font-size:.88em; font-weight:600; color:var(--muted);
+    list-style:none; user-select:none;
+    display:flex; align-items:center; gap:8px;
+  }
+  details summary::-webkit-details-marker { display:none }
+  details summary::before {
+    content:"▶"; font-size:.65em; color:var(--dim);
+    transition:transform .2s; flex-shrink:0;
+  }
+  details[open] summary::before { transform:rotate(90deg) }
+  details summary:hover { background:var(--surface2); color:var(--text) }
+  details[open] summary { border-bottom:1px solid var(--border); color:var(--text) }
+  .details-inner { overflow-x:auto }
+
+  /* ── TABLE ── */
+  table { width:100%; border-collapse:collapse; font-size:.85em }
+  th { background:var(--surface); color:var(--muted); font-weight:600;
+       text-transform:uppercase; font-size:.68em; letter-spacing:.08em;
+       padding:10px 16px; text-align:left; border-bottom:1px solid var(--border) }
+  td { padding:11px 16px; border-bottom:1px solid var(--border2);
+       color:var(--text); vertical-align:middle }
+  tr:last-child td { border-bottom:none }
+  tr:hover td { background:rgba(255,255,255,.025) }
 
   /* ── LEGEND ── */
-  .legend{ display:flex; gap:16px; padding:12px 16px; flex-wrap:wrap;
-           font-size:.75em; color:var(--muted); background:var(--surface);
-           border-top:1px solid var(--border2) }
+  .legend { display:flex; gap:16px; padding:12px 16px; flex-wrap:wrap;
+            font-size:.75em; color:var(--muted); background:var(--surface);
+            border-top:1px solid var(--border2) }
 
   /* ── HISTORY SUMMARY ── */
-  .hist-summary{ padding:16px 20px; background:var(--surface);
-                 display:flex; gap:28px; flex-wrap:wrap; align-items:center;
-                 border-bottom:1px solid var(--border) }
+  .hist-summary { padding:16px 20px; background:var(--surface);
+                  display:flex; gap:28px; flex-wrap:wrap; align-items:center;
+                  border-bottom:1px solid var(--border) }
 </style>
 </head>
 <body>
 
-<div class="hero">
-  <div class="hero-eyebrow">Opta Value Bets</div>
-  <h1>Apostá con ventaja<br>sobre la casa</h1>
-  <p>Opta es el modelo estadístico que usan los propios bookmakers. Cuando sus cuotas pagan más de lo que Opta calcula, hay una ventaja real para vos.</p>
-  <div class="hero-meta">
-    <span><span class="dot-live"></span> En vivo · 20/05/2026 14:46</span>
-    <span>📊 125 partidos analizados</span>
-    <span style="color:var(--green)">
-      🎯 8 apuestas con ventaja ahora
-    </span>
+<div class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <div class="header-title">Value Bets <span class="accent">·</span> Opta</div>
+      <div class="header-meta"><span class="dot-live"></span>20/05/2026 15:10 · 125 partidos analizados</div>
+    </div>
   </div>
 </div>
 
-<div class="wrap">
 
-  <div class="section-label">Apuestas recomendadas</div>
+<div class="stat-bar">
+  <div class="container stat-inner">
+    <div class="stat-main">
+      <div class="stat-label-small">Rendimiento del modelo</div>
+      <div class="stat-roi" style="color:var(--green)">+1.4%</div>
+    </div>
+    <div class="stat-meta">
+      22 apuestas registradas<br>
+      <span style="color:var(--dim)">desde 16/05/2026</span>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:60px">
+
+  <div class="section-label">7 apuestas con ventaja ahora</div>
   <div class="picks-grid">
         <div class="pick-card">
           <div class="pick-top">
-            <span class="pick-league">⚽ Serie A</span>
-            <span class="pick-time">14:45 hs · 2026-05-23</span>
+            <span>⚽ Serie A</span>
+            <span>14:45 hs</span>
           </div>
-          <div class="pick-match">Lazio<span class="pick-vs"> vs </span>Pisa</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Pisa</div>
-              <div class="pick-opta">Opta: 19.2%</div>
-            </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#e6edf3">5.90</div>
-              <div class="pick-ev">+13.3% ventaja</div>
-            </div>
+          <div class="pick-teams">
+            <span class="pick-home">Lazio</span>
+            <span class="pick-away">Pisa</span>
           </div>
-        </div>
-        <div class="pick-card">
-          <div class="pick-top">
-            <span class="pick-league">🇪🇸 La Liga</span>
-            <span class="pick-time">15:00 hs · 2026-05-23</span>
-          </div>
-          <div class="pick-match">Real Madrid<span class="pick-vs"> vs </span>Athletic Club</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Athletic Club</div>
-              <div class="pick-opta">Opta: 19.0%</div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 19.2%</span>
             </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#e6edf3">5.90</div>
-              <div class="pick-ev">+12.1% ventaja</div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--text)">5.90</span>
+              <span class="pick-ev">+13.3%</span>
             </div>
           </div>
         </div>
         <div class="pick-card">
           <div class="pick-top">
-            <span class="pick-league">🇪🇸 La Liga</span>
-            <span class="pick-time">15:00 hs · 2026-05-23</span>
+            <span>🇪🇸 La Liga</span>
+            <span>15:00 hs</span>
           </div>
-          <div class="pick-match">Celta Vigo<span class="pick-vs"> vs </span>Sevilla</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Sevilla</div>
-              <div class="pick-opta">Opta: 22.7%</div>
-            </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#e6edf3">4.75</div>
-              <div class="pick-ev">+7.8% ventaja</div>
-            </div>
+          <div class="pick-teams">
+            <span class="pick-home">Real Madrid</span>
+            <span class="pick-away">Athletic Club</span>
           </div>
-        </div>
-        <div class="pick-card">
-          <div class="pick-top">
-            <span class="pick-league">⚽ UEFA Europa League</span>
-            <span class="pick-time">15:00 hs · 2026-05-20</span>
-          </div>
-          <div class="pick-match">SC Freiburg<span class="pick-vs"> vs </span>Aston Villa</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Local</div>
-              <div class="pick-team">SC Freiburg</div>
-              <div class="pick-opta">Opta: 19.4%</div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 19.0%</span>
             </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#3fb950">↑5.40</div>
-              <div class="pick-ev">+4.8% ventaja</div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--text)">5.90</span>
+              <span class="pick-ev">+12.1%</span>
             </div>
           </div>
         </div>
         <div class="pick-card">
           <div class="pick-top">
-            <span class="pick-league">🇪🇸 La Liga</span>
-            <span class="pick-time">15:00 hs · 2026-05-23</span>
+            <span>🇪🇸 La Liga</span>
+            <span>15:00 hs</span>
           </div>
-          <div class="pick-match">Mallorca<span class="pick-vs"> vs </span>Oviedo</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Oviedo</div>
-              <div class="pick-opta">Opta: 16.1%</div>
-            </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#f85149">↓6.50</div>
-              <div class="pick-ev">+4.6% ventaja</div>
-            </div>
+          <div class="pick-teams">
+            <span class="pick-home">Celta Vigo</span>
+            <span class="pick-away">Sevilla</span>
           </div>
-        </div>
-        <div class="pick-card">
-          <div class="pick-top">
-            <span class="pick-league">🇪🇸 La Liga</span>
-            <span class="pick-time">15:00 hs · 2026-05-23</span>
-          </div>
-          <div class="pick-match">Girona<span class="pick-vs"> vs </span>Elche</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Elche</div>
-              <div class="pick-opta">Opta: 24.3%</div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 22.7%</span>
             </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#e6edf3">4.30</div>
-              <div class="pick-ev">+4.5% ventaja</div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--text)">4.75</span>
+              <span class="pick-ev">+7.8%</span>
             </div>
           </div>
         </div>
         <div class="pick-card">
           <div class="pick-top">
-            <span class="pick-league">🇪🇸 La Liga</span>
-            <span class="pick-time">15:00 hs · 2026-05-23</span>
+            <span>🇪🇸 La Liga</span>
+            <span>15:00 hs</span>
           </div>
-          <div class="pick-match">Real Betis<span class="pick-vs"> vs </span>Levante</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Levante</div>
-              <div class="pick-opta">Opta: 32.7%</div>
+          <div class="pick-teams">
+            <span class="pick-home">Mallorca</span>
+            <span class="pick-away">Oviedo</span>
+          </div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 16.1%</span>
             </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#3fb950">↑3.15</div>
-              <div class="pick-ev">+3.0% ventaja</div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--red)">↓6.50</span>
+              <span class="pick-ev">+4.6%</span>
             </div>
           </div>
         </div>
         <div class="pick-card">
           <div class="pick-top">
-            <span class="pick-league">🇺🇸 Major League Soccer</span>
-            <span class="pick-time">19:30 hs · 2026-05-23</span>
+            <span>🇪🇸 La Liga</span>
+            <span>15:00 hs</span>
           </div>
-          <div class="pick-match">FC Cincinnati<span class="pick-vs"> vs </span>Orlando City SC</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">Visitante</div>
-              <div class="pick-team">Orlando City SC</div>
-              <div class="pick-opta">Opta: 22.1%</div>
+          <div class="pick-teams">
+            <span class="pick-home">Girona</span>
+            <span class="pick-away">Elche</span>
+          </div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 24.3%</span>
             </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:#e6edf3">4.55</div>
-              <div class="pick-ev">+0.6% ventaja</div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--text)">4.30</span>
+              <span class="pick-ev">+4.5%</span>
+            </div>
+          </div>
+        </div>
+        <div class="pick-card">
+          <div class="pick-top">
+            <span>🇪🇸 La Liga</span>
+            <span>15:00 hs</span>
+          </div>
+          <div class="pick-teams">
+            <span class="pick-home">Real Betis</span>
+            <span class="pick-away">Levante</span>
+          </div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 32.7%</span>
+            </div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--green)">↑3.15</span>
+              <span class="pick-ev">+3.0%</span>
+            </div>
+          </div>
+        </div>
+        <div class="pick-card">
+          <div class="pick-top">
+            <span>🇺🇸 Major League Soccer</span>
+            <span>19:30 hs</span>
+          </div>
+          <div class="pick-teams">
+            <span class="pick-home">FC Cincinnati</span>
+            <span class="pick-away">Orlando City SC</span>
+          </div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">Visitante</span>
+              <span class="pick-opta">Opta 22.1%</span>
+            </div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:var(--text)">4.55</span>
+              <span class="pick-ev">+0.6%</span>
             </div>
           </div>
         </div></div>
 
-  <div class="section-label">Análisis completo · todos los resultados</div>
-  <div class="table-wrap">
-    
-    <div style="padding:10px 20px;background:#0f172a;border-bottom:1px solid #334155;
-                font-size:.82em;color:#64748b">
-      17 partidos analizados · <span style="color:#4ade80;font-weight:bold">8 con PEV ★</span> · <span style="color:#475569">9 sin valor</span>
-    </div>
-    <table>
-      <thead><tr>
-        <th>Partido</th><th>Torneo</th><th>Fecha</th>
-        <th>Local</th><th>Empate</th><th>Visitante</th>
-      </tr></thead>
-      <tbody>
-        <tr style="background:rgba(101,163,13,0.12)">
-          <td>Lazio<br>Pisa</td>
-          <td>⚽ Serie A</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-10.3%</span><br><span style="color:#94a3b8;font-size:.8em">1.53</span><br><span style="color:#64748b;font-size:.75em">58.6%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.0%</span><br><span style="color:#94a3b8;font-size:.8em">4.10</span><br><span style="color:#64748b;font-size:.75em">22.2%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#65a30d;font-size:1.05em">+13.3% ★</span><br><span style="color:#cbd5e1;font-size:.8em">5.90</span><br><span style="color:#94a3b8;font-size:.75em">19.2%</span></td>
-        </tr>
-        <tr style="background:rgba(101,163,13,0.12)">
-          <td>Real Madrid<br>Athletic Club</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-12.3%</span><br><span style="color:#94a3b8;font-size:.8em">1.46</span><br><span style="color:#64748b;font-size:.75em">60.1%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-2.8%</span><br><span style="color:#94a3b8;font-size:.8em">4.65</span><br><span style="color:#64748b;font-size:.75em">20.9%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#65a30d;font-size:1.05em">+12.1% ★</span><br><span style="color:#cbd5e1;font-size:.8em">5.90</span><br><span style="color:#94a3b8;font-size:.75em">19.0%</span></td>
-        </tr>
-        <tr style="background:rgba(101,163,13,0.12)">
-          <td>Celta Vigo<br>Sevilla</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.7%</span><br><span style="color:#94a3b8;font-size:.8em">1.72</span><br><span style="color:#64748b;font-size:.75em">53.1%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-12.9%</span><br><span style="color:#94a3b8;font-size:.8em">3.60</span><br><span style="color:#64748b;font-size:.75em">24.2%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#65a30d;font-size:1.05em">+7.8% ★</span><br><span style="color:#cbd5e1;font-size:.8em">4.75</span><br><span style="color:#94a3b8;font-size:.75em">22.7%</span></td>
-        </tr>
-        <tr style="background:rgba(202,138,4,0.10)">
-          <td>SC Freiburg<br>Aston Villa</td>
-          <td>⚽ UEFA Europa League</td>
-          <td>2026-05-20<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+4.8% ★</span><br><span style="color:#4ade80;font-size:.8em">↑5.40<span style="color:#64748b;font-size:.75em"> 4.85</span></span><br><span style="color:#94a3b8;font-size:.75em">19.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-10.0%</span><br><span style="color:#4ade80;font-size:.8em">↑3.75<span style="color:#64748b;font-size:.75em"> 3.65</span></span><br><span style="color:#64748b;font-size:.75em">24.0%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.5%</span><br><span style="color:#f87171;font-size:.8em">↓1.62<span style="color:#64748b;font-size:.75em"> 1.69</span></span><br><span style="color:#64748b;font-size:.75em">56.5%</span></td>
-        </tr>
-        <tr style="background:rgba(202,138,4,0.10)">
-          <td>Mallorca<br>Oviedo</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.7%</span><br><span style="color:#f87171;font-size:.8em">↓1.45<span style="color:#64748b;font-size:.75em"> 1.48</span></span><br><span style="color:#64748b;font-size:.75em">63.0%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-7.0%</span><br><span style="color:#4ade80;font-size:.8em">↑4.45<span style="color:#64748b;font-size:.75em"> 4.20</span></span><br><span style="color:#64748b;font-size:.75em">20.9%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+4.6% ★</span><br><span style="color:#f87171;font-size:.8em">↓6.50<span style="color:#64748b;font-size:.75em"> 6.60</span></span><br><span style="color:#94a3b8;font-size:.75em">16.1%</span></td>
-        </tr>
-        <tr style="background:rgba(202,138,4,0.10)">
-          <td>Girona<br>Elche</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.7%</span><br><span style="color:#94a3b8;font-size:.8em">1.74</span><br><span style="color:#64748b;font-size:.75em">51.9%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.6%</span><br><span style="color:#94a3b8;font-size:.8em">3.80</span><br><span style="color:#64748b;font-size:.75em">23.8%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+4.5% ★</span><br><span style="color:#cbd5e1;font-size:.8em">4.30</span><br><span style="color:#94a3b8;font-size:.75em">24.3%</span></td>
-        </tr>
-        <tr style="background:rgba(202,138,4,0.10)">
-          <td>Real Betis<br>Levante</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.5%</span><br><span style="color:#94a3b8;font-size:.8em">2.25</span><br><span style="color:#64748b;font-size:.75em">42.0%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-17.4%</span><br><span style="color:#f87171;font-size:.8em">↓3.25<span style="color:#64748b;font-size:.75em"> 3.65</span></span><br><span style="color:#64748b;font-size:.75em">25.4%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+3.0% ★</span><br><span style="color:#4ade80;font-size:.8em">↑3.15<span style="color:#64748b;font-size:.75em"> 2.88</span></span><br><span style="color:#94a3b8;font-size:.75em">32.7%</span></td>
-        </tr>
-        <tr style="">
-          <td>FC Cincinnati<br>Orlando City SC</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.3%</span><br><span style="color:#94a3b8;font-size:.8em">1.58</span><br><span style="color:#64748b;font-size:.75em">57.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-4.7%</span><br><span style="color:#94a3b8;font-size:.8em">4.65</span><br><span style="color:#64748b;font-size:.75em">20.5%</span></td>
-          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#64748b;font-size:1.05em">+0.6% ★</span><br><span style="color:#cbd5e1;font-size:.8em">4.55</span><br><span style="color:#94a3b8;font-size:.75em">22.1%</span></td>
-        </tr>
-        <tr style="">
-          <td>Fiorentina<br>Atalanta</td>
-          <td>⚽ Serie A</td>
-          <td>2026-05-22<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-6.8%</span><br><span style="color:#94a3b8;font-size:.8em">2.64</span><br><span style="color:#64748b;font-size:.75em">35.3%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.0%</span><br><span style="color:#94a3b8;font-size:.8em">3.50</span><br><span style="color:#64748b;font-size:.75em">26.0%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-4.0%</span><br><span style="color:#94a3b8;font-size:.8em">2.48</span><br><span style="color:#64748b;font-size:.75em">38.7%</span></td>
-        </tr>
-        <tr style="">
-          <td>Bologna<br>Inter</td>
-          <td>⚽ Serie A</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">12:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.0%</span><br><span style="color:#94a3b8;font-size:.8em">2.84</span><br><span style="color:#64748b;font-size:.75em">32.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.9%</span><br><span style="color:#4ade80;font-size:.8em">↑3.75<span style="color:#64748b;font-size:.75em"> 3.70</span></span><br><span style="color:#64748b;font-size:.75em">25.1%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.6%</span><br><span style="color:#94a3b8;font-size:.8em">2.22</span><br><span style="color:#64748b;font-size:.75em">42.5%</span></td>
-        </tr>
-        <tr style="">
-          <td>St. Louis City<br>Austin</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-4.5%</span><br><span style="color:#94a3b8;font-size:.8em">1.67</span><br><span style="color:#64748b;font-size:.75em">57.2%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.4%</span><br><span style="color:#94a3b8;font-size:.8em">4.20</span><br><span style="color:#64748b;font-size:.75em">21.8%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.7%</span><br><span style="color:#94a3b8;font-size:.8em">4.35</span><br><span style="color:#64748b;font-size:.75em">21.0%</span></td>
-        </tr>
-        <tr style="">
-          <td>Alaves<br>Rayo Vallecano</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.3%</span><br><span style="color:#4ade80;font-size:.8em">↑2.26<span style="color:#64748b;font-size:.75em"> 2.20</span></span><br><span style="color:#64748b;font-size:.75em">41.9%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-11.6%</span><br><span style="color:#94a3b8;font-size:.8em">3.35</span><br><span style="color:#64748b;font-size:.75em">26.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-3.3%</span><br><span style="color:#f87171;font-size:.8em">↓3.05<span style="color:#64748b;font-size:.75em"> 3.15</span></span><br><span style="color:#64748b;font-size:.75em">31.7%</span></td>
-        </tr>
-        <tr style="">
-          <td>Espanyol<br>Real Sociedad</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.4%</span><br><span style="color:#94a3b8;font-size:.8em">2.18</span><br><span style="color:#64748b;font-size:.75em">43.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-10.0%</span><br><span style="color:#94a3b8;font-size:.8em">3.45</span><br><span style="color:#64748b;font-size:.75em">26.1%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.4%</span><br><span style="color:#94a3b8;font-size:.8em">3.10</span><br><span style="color:#64748b;font-size:.75em">30.5%</span></td>
-        </tr>
-        <tr style="">
-          <td>Getafe<br>Osasuna</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-6.8%</span><br><span style="color:#f87171;font-size:.8em">↓2.46<span style="color:#64748b;font-size:.75em"> 2.54</span></span><br><span style="color:#64748b;font-size:.75em">37.9%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.1%</span><br><span style="color:#f87171;font-size:.8em">↓2.86<span style="color:#64748b;font-size:.75em"> 2.94</span></span><br><span style="color:#64748b;font-size:.75em">31.8%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-3.0%</span><br><span style="color:#4ade80;font-size:.8em">↑3.20<span style="color:#64748b;font-size:.75em"> 2.98</span></span><br><span style="color:#64748b;font-size:.75em">30.3%</span></td>
-        </tr>
-        <tr style="">
-          <td>Valencia<br>Barcelona</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-0.9%</span><br><span style="color:#94a3b8;font-size:.8em">3.50</span><br><span style="color:#64748b;font-size:.75em">28.3%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-4.1%</span><br><span style="color:#94a3b8;font-size:.8em">4.10</span><br><span style="color:#64748b;font-size:.75em">23.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-10.6%</span><br><span style="color:#94a3b8;font-size:.8em">1.85</span><br><span style="color:#64748b;font-size:.75em">48.3%</span></td>
-        </tr>
-        <tr style="">
-          <td>Minnesota United FC<br>Real Salt Lake</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">16:30 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.9%</span><br><span style="color:#94a3b8;font-size:.8em">2.12</span><br><span style="color:#64748b;font-size:.75em">44.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-10.1%</span><br><span style="color:#94a3b8;font-size:.8em">3.70</span><br><span style="color:#64748b;font-size:.75em">24.3%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-4.5%</span><br><span style="color:#94a3b8;font-size:.8em">3.05</span><br><span style="color:#64748b;font-size:.75em">31.3%</span></td>
-        </tr>
-        <tr style="">
-          <td>DC United<br>CF Montreal</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-5.8%</span><br><span style="color:#94a3b8;font-size:.8em">1.84</span><br><span style="color:#64748b;font-size:.75em">51.2%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-9.7%</span><br><span style="color:#94a3b8;font-size:.8em">3.70</span><br><span style="color:#64748b;font-size:.75em">24.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-6.4%</span><br><span style="color:#94a3b8;font-size:.8em">3.85</span><br><span style="color:#64748b;font-size:.75em">24.3%</span></td>
-        </tr></tbody>
-    </table>
-    <div class="legend">
-      <span>★ = apuesta recomendada del partido</span>
-      <span>·</span>
-      <span><span style="color:var(--green)">↑</span> cuota subió desde la primera detección (mejor para vos)</span>
-      <span>·</span>
-      <span><span style="color:var(--red)">↓</span> cuota bajó (mercado ya lo corrigió)</span>
-    </div>
-  </div>
+  <div style="margin-top:32px"></div>
 
-  <div class="section-label">Historial de apuestas</div>
-  <div class="table-wrap">
-    
+  <details id="historial">
+    <summary>Rendimiento histórico · 22 apuestas</summary>
+    <div class="details-inner">
+      
     <div class="hist-summary">
       <span style="color:var(--muted);font-size:.88em">22 apuestas registradas</span>
       <span style="font-size:.88em">Rendimiento: <strong style="color:var(--green);font-size:1.3em">+1.4%</strong></span>
@@ -573,7 +465,161 @@
           <td><span style="color:#dc2626;margin-right:10px">❌ E@4.50 <strong>-1.00u</strong></span></td>
         </tr></tbody>
     </table>
-  </div>
+    </div>
+  </details>
+
+  <details id="analisis">
+    <summary>Análisis técnico · 16 partidos próximos</summary>
+    <div class="details-inner">
+      
+    <div style="padding:10px 20px;background:#0f172a;border-bottom:1px solid #334155;
+                font-size:.82em;color:#64748b">
+      16 partidos analizados · <span style="color:#4ade80;font-weight:bold">7 con PEV ★</span> · <span style="color:#475569">9 sin valor</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Partido</th><th>Torneo</th><th>Fecha</th>
+        <th>Local</th><th>Empate</th><th>Visitante</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:rgba(101,163,13,0.12)">
+          <td>Lazio<br>Pisa</td>
+          <td>⚽ Serie A</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-10.3%</span><br><span style="color:#94a3b8;font-size:.8em">1.53</span><br><span style="color:#64748b;font-size:.75em">58.6%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.0%</span><br><span style="color:#94a3b8;font-size:.8em">4.10</span><br><span style="color:#64748b;font-size:.75em">22.2%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#65a30d;font-size:1.05em">+13.3% ★</span><br><span style="color:#cbd5e1;font-size:.8em">5.90</span><br><span style="color:#94a3b8;font-size:.75em">19.2%</span></td>
+        </tr>
+        <tr style="background:rgba(101,163,13,0.12)">
+          <td>Real Madrid<br>Athletic Club</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-12.3%</span><br><span style="color:#94a3b8;font-size:.8em">1.46</span><br><span style="color:#64748b;font-size:.75em">60.1%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-2.8%</span><br><span style="color:#94a3b8;font-size:.8em">4.65</span><br><span style="color:#64748b;font-size:.75em">20.9%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#65a30d;font-size:1.05em">+12.1% ★</span><br><span style="color:#cbd5e1;font-size:.8em">5.90</span><br><span style="color:#94a3b8;font-size:.75em">19.0%</span></td>
+        </tr>
+        <tr style="background:rgba(101,163,13,0.12)">
+          <td>Celta Vigo<br>Sevilla</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-8.7%</span><br><span style="color:#94a3b8;font-size:.8em">1.72</span><br><span style="color:#64748b;font-size:.75em">53.1%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-12.9%</span><br><span style="color:#94a3b8;font-size:.8em">3.60</span><br><span style="color:#64748b;font-size:.75em">24.2%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#65a30d;font-size:1.05em">+7.8% ★</span><br><span style="color:#cbd5e1;font-size:.8em">4.75</span><br><span style="color:#94a3b8;font-size:.75em">22.7%</span></td>
+        </tr>
+        <tr style="background:rgba(202,138,4,0.10)">
+          <td>Mallorca<br>Oviedo</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-8.7%</span><br><span style="color:#f87171;font-size:.8em">↓1.45<span style="color:#64748b;font-size:.75em"> 1.48</span></span><br><span style="color:#64748b;font-size:.75em">63.0%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-7.0%</span><br><span style="color:#4ade80;font-size:.8em">↑4.45<span style="color:#64748b;font-size:.75em"> 4.20</span></span><br><span style="color:#64748b;font-size:.75em">20.9%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+4.6% ★</span><br><span style="color:#f87171;font-size:.8em">↓6.50<span style="color:#64748b;font-size:.75em"> 6.60</span></span><br><span style="color:#94a3b8;font-size:.75em">16.1%</span></td>
+        </tr>
+        <tr style="background:rgba(202,138,4,0.10)">
+          <td>Girona<br>Elche</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.7%</span><br><span style="color:#94a3b8;font-size:.8em">1.74</span><br><span style="color:#64748b;font-size:.75em">51.9%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.6%</span><br><span style="color:#94a3b8;font-size:.8em">3.80</span><br><span style="color:#64748b;font-size:.75em">23.8%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+4.5% ★</span><br><span style="color:#cbd5e1;font-size:.8em">4.30</span><br><span style="color:#94a3b8;font-size:.75em">24.3%</span></td>
+        </tr>
+        <tr style="background:rgba(202,138,4,0.10)">
+          <td>Real Betis<br>Levante</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.5%</span><br><span style="color:#94a3b8;font-size:.8em">2.25</span><br><span style="color:#64748b;font-size:.75em">42.0%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-17.4%</span><br><span style="color:#f87171;font-size:.8em">↓3.25<span style="color:#64748b;font-size:.75em"> 3.65</span></span><br><span style="color:#64748b;font-size:.75em">25.4%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#ca8a04;font-size:1.05em">+3.0% ★</span><br><span style="color:#4ade80;font-size:.8em">↑3.15<span style="color:#64748b;font-size:.75em"> 2.88</span></span><br><span style="color:#94a3b8;font-size:.75em">32.7%</span></td>
+        </tr>
+        <tr style="">
+          <td>FC Cincinnati<br>Orlando City SC</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.3%</span><br><span style="color:#94a3b8;font-size:.8em">1.58</span><br><span style="color:#64748b;font-size:.75em">57.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-4.7%</span><br><span style="color:#94a3b8;font-size:.8em">4.65</span><br><span style="color:#64748b;font-size:.75em">20.5%</span></td>
+          <td style="background:rgba(22,163,74,0.22);font-weight:bold"><span style="color:#64748b;font-size:1.05em">+0.6% ★</span><br><span style="color:#cbd5e1;font-size:.8em">4.55</span><br><span style="color:#94a3b8;font-size:.75em">22.1%</span></td>
+        </tr>
+        <tr style="">
+          <td>Fiorentina<br>Atalanta</td>
+          <td>⚽ Serie A</td>
+          <td>2026-05-22<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-6.8%</span><br><span style="color:#94a3b8;font-size:.8em">2.64</span><br><span style="color:#64748b;font-size:.75em">35.3%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.0%</span><br><span style="color:#94a3b8;font-size:.8em">3.50</span><br><span style="color:#64748b;font-size:.75em">26.0%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-4.0%</span><br><span style="color:#94a3b8;font-size:.8em">2.48</span><br><span style="color:#64748b;font-size:.75em">38.7%</span></td>
+        </tr>
+        <tr style="">
+          <td>Bologna<br>Inter</td>
+          <td>⚽ Serie A</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">12:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-8.0%</span><br><span style="color:#94a3b8;font-size:.8em">2.84</span><br><span style="color:#64748b;font-size:.75em">32.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.9%</span><br><span style="color:#4ade80;font-size:.8em">↑3.75<span style="color:#64748b;font-size:.75em"> 3.70</span></span><br><span style="color:#64748b;font-size:.75em">25.1%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.6%</span><br><span style="color:#94a3b8;font-size:.8em">2.22</span><br><span style="color:#64748b;font-size:.75em">42.5%</span></td>
+        </tr>
+        <tr style="">
+          <td>St. Louis City<br>Austin</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-4.5%</span><br><span style="color:#94a3b8;font-size:.8em">1.67</span><br><span style="color:#64748b;font-size:.75em">57.2%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-8.4%</span><br><span style="color:#94a3b8;font-size:.8em">4.20</span><br><span style="color:#64748b;font-size:.75em">21.8%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-8.7%</span><br><span style="color:#94a3b8;font-size:.8em">4.35</span><br><span style="color:#64748b;font-size:.75em">21.0%</span></td>
+        </tr>
+        <tr style="">
+          <td>Alaves<br>Rayo Vallecano</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.3%</span><br><span style="color:#4ade80;font-size:.8em">↑2.26<span style="color:#64748b;font-size:.75em"> 2.20</span></span><br><span style="color:#64748b;font-size:.75em">41.9%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-11.6%</span><br><span style="color:#94a3b8;font-size:.8em">3.35</span><br><span style="color:#64748b;font-size:.75em">26.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-3.3%</span><br><span style="color:#f87171;font-size:.8em">↓3.05<span style="color:#64748b;font-size:.75em"> 3.15</span></span><br><span style="color:#64748b;font-size:.75em">31.7%</span></td>
+        </tr>
+        <tr style="">
+          <td>Espanyol<br>Real Sociedad</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.4%</span><br><span style="color:#94a3b8;font-size:.8em">2.18</span><br><span style="color:#64748b;font-size:.75em">43.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-10.0%</span><br><span style="color:#94a3b8;font-size:.8em">3.45</span><br><span style="color:#64748b;font-size:.75em">26.1%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.4%</span><br><span style="color:#94a3b8;font-size:.8em">3.10</span><br><span style="color:#64748b;font-size:.75em">30.5%</span></td>
+        </tr>
+        <tr style="">
+          <td>Getafe<br>Osasuna</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-6.8%</span><br><span style="color:#f87171;font-size:.8em">↓2.46<span style="color:#64748b;font-size:.75em"> 2.54</span></span><br><span style="color:#64748b;font-size:.75em">37.9%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.1%</span><br><span style="color:#f87171;font-size:.8em">↓2.86<span style="color:#64748b;font-size:.75em"> 2.94</span></span><br><span style="color:#64748b;font-size:.75em">31.8%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-3.0%</span><br><span style="color:#4ade80;font-size:.8em">↑3.20<span style="color:#64748b;font-size:.75em"> 2.98</span></span><br><span style="color:#64748b;font-size:.75em">30.3%</span></td>
+        </tr>
+        <tr style="">
+          <td>Valencia<br>Barcelona</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-0.9%</span><br><span style="color:#94a3b8;font-size:.8em">3.50</span><br><span style="color:#64748b;font-size:.75em">28.3%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-4.1%</span><br><span style="color:#94a3b8;font-size:.8em">4.10</span><br><span style="color:#64748b;font-size:.75em">23.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-10.6%</span><br><span style="color:#94a3b8;font-size:.8em">1.85</span><br><span style="color:#64748b;font-size:.75em">48.3%</span></td>
+        </tr>
+        <tr style="">
+          <td>Minnesota United FC<br>Real Salt Lake</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">16:30 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.9%</span><br><span style="color:#94a3b8;font-size:.8em">2.12</span><br><span style="color:#64748b;font-size:.75em">44.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-10.1%</span><br><span style="color:#94a3b8;font-size:.8em">3.70</span><br><span style="color:#64748b;font-size:.75em">24.3%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-4.5%</span><br><span style="color:#94a3b8;font-size:.8em">3.05</span><br><span style="color:#64748b;font-size:.75em">31.3%</span></td>
+        </tr>
+        <tr style="">
+          <td>DC United<br>CF Montreal</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-23<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-5.8%</span><br><span style="color:#94a3b8;font-size:.8em">1.84</span><br><span style="color:#64748b;font-size:.75em">51.2%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-9.7%</span><br><span style="color:#94a3b8;font-size:.8em">3.70</span><br><span style="color:#64748b;font-size:.75em">24.4%</span></td>
+          <td style="color:#94a3b8"><span style="font-size:.9em">-6.4%</span><br><span style="color:#94a3b8;font-size:.8em">3.85</span><br><span style="color:#64748b;font-size:.75em">24.3%</span></td>
+        </tr></tbody>
+    </table>
+      <div class="legend">
+        <span>★ = apuesta recomendada del partido</span>
+        <span>·</span>
+        <span><span style="color:var(--green)">↑</span> cuota subió desde la primera detección (mejor)</span>
+        <span>·</span>
+        <span><span style="color:var(--red)">↓</span> cuota bajó (mercado lo corrigió)</span>
+      </div>
+    </div>
+  </details>
 
 </div>
 </body>

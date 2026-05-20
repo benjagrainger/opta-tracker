@@ -176,7 +176,7 @@ def _ev_cell(opta, odds, first_odds, is_best_pev):
 def build_value_table(bets):
     """Builds table of ALL upcoming matches with EV per outcome. PEV cells highlighted."""
     if not bets:
-        return '<p style="color:#64748b;padding:20px">No hay partidos en el ticker. Esperá al próximo scrape.</p>'
+        return '<p style="color:#64748b;padding:20px">No hay partidos en el ticker. Espera al próximo scrape.</p>'
 
     # Pre-sort: matches with PEV first, then by date/time
     def match_sort_key(b):
@@ -354,69 +354,140 @@ def build_picks_cards(bets):
             picks.append({**b, "side": best_side, "ev": best_ev,
                           "odds": best_odds, "opta": best_opta})
 
-    picks.sort(key=lambda x: -x["ev"])
+    picks.sort(key=lambda x: (x["match_date"], x.get("match_time_utc") or "", -x["ev"]))
     if not picks:
-        return '<p style="color:#8b949e;padding:32px 24px;font-size:.95em">No hay apuestas con ventaja en este momento. Volvé más tarde.</p>'
+        return '<p class="empty-state">No hay apuestas con ventaja en este momento.<br>Vuelve más tarde.</p>'
 
     side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}
     cards = ""
     for p in picks:
         hora = utc_to_chile(p.get("match_time_utc"), p.get("match_date"))
-        hora_str = f"{hora} hs · " if hora else ""
-        team_bet = (p["home_display"] if p["side"] == "L"
-                    else p["away_display"] if p["side"] == "V"
-                    else "Empate")
+        hora_str = f"Hoy {hora} hs" if hora and p["match_date"] == datetime.now().strftime("%Y-%m-%d") else (f"{hora} hs" if hora else p["match_date"])
 
         side_key = {"L": "home", "E": "draw", "V": "away"}[p["side"]]
         first_odds = p.get(f"first_odds_{side_key}")
-        arrow = ""
+        arrow, odds_color = "", "var(--text)"
         if first_odds and abs(p["odds"] - first_odds) >= 0.03:
-            arrow = "↑" if p["odds"] > first_odds else "↓"
-            odds_color = "#3fb950" if p["odds"] > first_odds else "#f85149"
-        else:
-            odds_color = "#e6edf3"
+            if p["odds"] > first_odds:
+                arrow, odds_color = "↑", "var(--green)"
+            else:
+                arrow, odds_color = "↓", "var(--red)"
 
         ev_pct = f"+{p['ev']:.1%}"
         cards += f"""
         <div class="pick-card">
           <div class="pick-top">
-            <span class="pick-league">{comp_flag(p['comp'])} {p['league_display']}</span>
-            <span class="pick-time">{hora_str}{p['match_date']}</span>
+            <span>{comp_flag(p['comp'])} {p['league_display']}</span>
+            <span>{hora_str}</span>
           </div>
-          <div class="pick-match">{p['home_display']}<span class="pick-vs"> vs </span>{p['away_display']}</div>
-          <div class="pick-bottom">
-            <div>
-              <div class="pick-label">{side_label[p['side']]}</div>
-              <div class="pick-team">{team_bet}</div>
-              <div class="pick-opta">Opta: {p['opta']:.1f}%</div>
+          <div class="pick-teams">
+            <span class="pick-home">{p['home_display']}</span>
+            <span class="pick-away">{p['away_display']}</span>
+          </div>
+          <div class="pick-footer">
+            <div class="pick-bet">
+              <span class="pick-bet-label">Apostar a</span>
+              <span class="pick-bet-side">{side_label[p['side']]}</span>
+              <span class="pick-opta">Opta {p['opta']:.1f}%</span>
             </div>
-            <div style="text-align:right">
-              <div class="pick-odds" style="color:{odds_color}">{arrow}{p['odds']:.2f}</div>
-              <div class="pick-ev">{ev_pct} ventaja</div>
+            <div class="pick-nums">
+              <span class="pick-odds" style="color:{odds_color}">{arrow}{p['odds']:.2f}</span>
+              <span class="pick-ev">{ev_pct}</span>
             </div>
           </div>
         </div>"""
     return f'<div class="picks-grid">{cards}</div>'
 
 
+def build_stat_bar(results):
+    """Banner con ROI acumulado. Retorna '' si no hay datos suficientes."""
+    total_pl, total_bets, first_date = 0.0, 0, None
+    for r in results:
+        pev_bets = []
+        for side, opta, odds in [
+            ("L", r["prob_home"], r["odds_home"]),
+            ("E", r["prob_draw"], r["odds_draw"]),
+            ("V", r["prob_away"], r["odds_away"]),
+        ]:
+            if not opta or not odds or odds < 1.02 or odds > 25:
+                continue
+            ev = (opta / 100) * odds - 1
+            if 0 < ev <= 1.0:
+                pev_bets.append({"side": side, "odds": odds, "ev": ev})
+        if not pev_bets:
+            continue
+        best = max(pev_bets, key=lambda x: x["ev"])
+        won = (r["outcome"] == {"L": "H", "E": "D", "V": "A"}[best["side"]])
+        total_pl += round(best["odds"] - 1, 3) if won else -1.0
+        total_bets += 1
+        if not first_date or r["match_date"] < first_date:
+            first_date = r["match_date"]
+
+    if not total_bets:
+        return ""
+
+    roi = total_pl / total_bets
+    roi_color = "var(--green)" if roi >= 0 else "var(--red)"
+    roi_str = f"{roi:+.1%}"
+    try:
+        fd = datetime.strptime(first_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except Exception:
+        fd = first_date or "—"
+
+    return f"""
+<div class="stat-bar">
+  <div class="container stat-inner">
+    <div class="stat-main">
+      <div class="stat-label-small">Rendimiento del modelo</div>
+      <div class="stat-roi" style="color:{roi_color}">{roi_str}</div>
+    </div>
+    <div class="stat-meta">
+      {total_bets} apuestas registradas<br>
+      <span style="color:var(--dim)">desde {fd}</span>
+    </div>
+  </div>
+</div>"""
+
+
 def generate():
     bets, results, stats = load_data()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    picks_html   = build_picks_cards(bets)
+    stat_bar      = build_stat_bar(results)
+    picks_html    = build_picks_cards(bets)
     analysis_html = build_value_table(bets)
     history_html  = build_results_table(results)
 
+    # Count matches (not cells) with at least one PEV side
     n_picks = sum(
         1 for b in bets
-        for side, opta, odds in [
-            ("L", b["prob_home"], b["odds_home"]),
-            ("E", b["prob_draw"], b["odds_draw"]),
-            ("V", b["prob_away"], b["odds_away"]),
-        ]
-        if opta and odds and 0 < (opta / 100) * odds - 1 <= 1.0
+        if any(
+            opta and odds and 0 < (opta / 100) * odds - 1 <= 1.0
+            for _, opta, odds in [
+                ("L", b["prob_home"], b["odds_home"]),
+                ("E", b["prob_draw"], b["odds_draw"]),
+                ("V", b["prob_away"], b["odds_away"]),
+            ]
+        )
     )
-    pev_count = n_picks  # kept for badge
+
+    # Count results that had at least one PEV bet
+    n_results = sum(
+        1 for r in results
+        if any(
+            opta and odds and 0 < (opta / 100) * odds - 1 <= 1.0
+            for _, opta, odds in [
+                ("L", r["prob_home"], r["odds_home"]),
+                ("E", r["prob_draw"], r["odds_draw"]),
+                ("V", r["prob_away"], r["odds_away"]),
+            ]
+        )
+    )
+
+    picks_label = (
+        f"{n_picks} apuesta{'s' if n_picks != 1 else ''} con ventaja ahora"
+        if n_picks else "Sin apuestas con ventaja en este momento"
+    )
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -433,110 +504,149 @@ def generate():
     --red:#f85149; --yellow:#d29922;
     --text:#e6edf3; --muted:#8b949e; --dim:#484f58;
   }}
-  *{{ box-sizing:border-box; margin:0; padding:0 }}
-  body{{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
-        background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5 }}
+  *, *::before, *::after {{ box-sizing:border-box; margin:0; padding:0 }}
+  body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
+         background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5 }}
 
-  /* ── HERO ── */
-  .hero{{ padding:48px 32px 28px; max-width:1100px; margin:0 auto }}
-  .hero-eyebrow{{ font-size:.72em; font-weight:700; letter-spacing:.14em;
-                 color:var(--green); text-transform:uppercase; margin-bottom:10px }}
-  .hero h1{{ font-size:2.2em; font-weight:800; line-height:1.15; margin-bottom:10px }}
-  .hero p{{ font-size:.95em; color:var(--muted); max-width:560px; line-height:1.65 }}
-  .hero-meta{{ display:flex; gap:24px; margin-top:20px; flex-wrap:wrap;
-              font-size:.78em; color:var(--muted) }}
-  .hero-meta span{{ display:flex; align-items:center; gap:5px }}
-  .dot-live{{ width:7px; height:7px; border-radius:50%; background:var(--green);
-             box-shadow:0 0 6px var(--green); animation:blink 2s infinite }}
-  @keyframes blink{{ 0%,100%{{opacity:1}}50%{{opacity:.3}} }}
+  /* ── LAYOUT ── */
+  .container {{ max-width:1100px; margin:0 auto; padding:0 24px }}
 
-  /* ── CONTAINER ── */
-  .wrap{{ max-width:1100px; margin:0 auto; padding:0 24px 60px }}
+  /* ── HEADER ── */
+  .site-header {{ padding:28px 0 0 }}
+  .header-inner {{ display:flex; justify-content:space-between; align-items:baseline;
+                  flex-wrap:wrap; gap:6px }}
+  .header-title {{ font-size:1.1em; font-weight:800; letter-spacing:-.01em }}
+  .header-title .accent {{ color:var(--green) }}
+  .header-meta {{ font-size:.75em; color:var(--dim) }}
+  .dot-live {{ display:inline-block; width:7px; height:7px; border-radius:50%;
+              background:var(--green); box-shadow:0 0 6px var(--green);
+              animation:blink 2s infinite; margin-right:4px; vertical-align:middle }}
+  @keyframes blink {{ 0%,100% {{ opacity:1 }} 50% {{ opacity:.3 }} }}
+
+  /* ── STAT BAR ── */
+  .stat-bar {{ background:var(--surface); border-top:1px solid var(--border2);
+              border-bottom:1px solid var(--border2); margin-top:20px }}
+  .stat-inner {{ display:flex; align-items:center; gap:32px; flex-wrap:wrap;
+                padding:20px 0 }}
+  .stat-label-small {{ font-size:.65em; font-weight:700; letter-spacing:.12em;
+                      text-transform:uppercase; color:var(--dim); margin-bottom:4px }}
+  .stat-roi {{ font-size:2.2em; font-weight:800; line-height:1 }}
+  .stat-meta {{ font-size:.82em; color:var(--muted); line-height:1.7 }}
 
   /* ── SECTION LABEL ── */
-  .section-label{{ font-size:.68em; font-weight:700; letter-spacing:.13em;
-                  text-transform:uppercase; color:var(--muted);
-                  margin:36px 0 14px; padding-bottom:8px;
-                  border-bottom:1px solid var(--border2) }}
+  .section-label {{ font-size:.68em; font-weight:700; letter-spacing:.13em;
+                   text-transform:uppercase; color:var(--muted);
+                   margin:32px 0 14px; padding-bottom:8px;
+                   border-bottom:1px solid var(--border2) }}
 
   /* ── PICK CARDS ── */
-  .picks-grid{{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px }}
-  .pick-card{{
+  .picks-grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px }}
+  .pick-card {{
     background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; padding:18px 20px; cursor:default;
+    border-radius:10px; padding:16px 18px;
+    display:flex; flex-direction:column;
     transition:border-color .15s, transform .1s;
   }}
-  .pick-card:hover{{ border-color:var(--green); transform:translateY(-1px) }}
-  .pick-top{{ display:flex; justify-content:space-between; align-items:center;
-             font-size:.72em; color:var(--muted); margin-bottom:10px }}
-  .pick-match{{ font-size:1em; font-weight:600; margin-bottom:16px; line-height:1.35 }}
-  .pick-match .pick-vs{{ color:var(--muted); font-weight:400; font-size:.88em }}
-  .pick-bottom{{ display:flex; justify-content:space-between; align-items:flex-end }}
-  .pick-label{{ font-size:.7em; text-transform:uppercase; letter-spacing:.08em;
-               color:var(--muted); margin-bottom:2px }}
-  .pick-team{{ font-size:.95em; font-weight:600; color:var(--text) }}
-  .pick-opta{{ font-size:.72em; color:var(--dim); margin-top:3px }}
-  .pick-odds{{ font-size:1.9em; font-weight:800; line-height:1 }}
-  .pick-ev{{ font-size:.82em; font-weight:700; color:var(--green); margin-top:3px }}
+  .pick-card:hover {{ border-color:var(--green); transform:translateY(-1px) }}
+  .pick-top {{ display:flex; justify-content:space-between; align-items:center;
+              font-size:.72em; color:var(--muted); margin-bottom:12px }}
+  .pick-teams {{ display:flex; flex-direction:column; gap:3px; margin-bottom:14px; flex:1 }}
+  .pick-home {{ font-size:1em; font-weight:700 }}
+  .pick-away {{ font-size:1em; font-weight:400; color:var(--muted) }}
+  .pick-footer {{ display:flex; justify-content:space-between; align-items:flex-end;
+                 padding-top:12px; border-top:1px solid var(--border2) }}
+  .pick-bet {{ display:flex; flex-direction:column; gap:2px }}
+  .pick-bet-label {{ font-size:.62em; text-transform:uppercase; letter-spacing:.1em; color:var(--dim) }}
+  .pick-bet-side {{ font-size:.9em; font-weight:700 }}
+  .pick-opta {{ font-size:.7em; color:var(--muted) }}
+  .pick-nums {{ display:flex; flex-direction:column; align-items:flex-end; gap:2px }}
+  .pick-odds {{ font-size:1.7em; font-weight:800; line-height:1 }}
+  .pick-ev {{ font-size:.8em; font-weight:700; color:var(--green) }}
+  .empty-state {{ color:var(--muted); padding:28px 0; font-size:.9em; line-height:1.8 }}
 
-  /* ── FULL ANALYSIS TABLE ── */
-  .table-wrap{{ border-radius:8px; border:1px solid var(--border); overflow:hidden; overflow-x:auto }}
-  table{{ width:100%; border-collapse:collapse; font-size:.85em }}
-  th{{ background:var(--surface); color:var(--muted); font-weight:600;
-      text-transform:uppercase; font-size:.68em; letter-spacing:.08em;
-      padding:10px 16px; text-align:left; border-bottom:1px solid var(--border) }}
-  td{{ padding:11px 16px; border-bottom:1px solid var(--border2);
-      color:var(--text); vertical-align:middle }}
-  tr:last-child td{{ border-bottom:none }}
-  tr:hover td{{ background:rgba(255,255,255,.025) }}
+  /* ── DETAILS / COLLAPSIBLE ── */
+  details {{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; overflow:hidden;
+  }}
+  details + details {{ margin-top:10px }}
+  details summary {{
+    cursor:pointer; padding:16px 20px;
+    font-size:.88em; font-weight:600; color:var(--muted);
+    list-style:none; user-select:none;
+    display:flex; align-items:center; gap:8px;
+  }}
+  details summary::-webkit-details-marker {{ display:none }}
+  details summary::before {{
+    content:"▶"; font-size:.65em; color:var(--dim);
+    transition:transform .2s; flex-shrink:0;
+  }}
+  details[open] summary::before {{ transform:rotate(90deg) }}
+  details summary:hover {{ background:var(--surface2); color:var(--text) }}
+  details[open] summary {{ border-bottom:1px solid var(--border); color:var(--text) }}
+  .details-inner {{ overflow-x:auto }}
+
+  /* ── TABLE ── */
+  table {{ width:100%; border-collapse:collapse; font-size:.85em }}
+  th {{ background:var(--surface); color:var(--muted); font-weight:600;
+       text-transform:uppercase; font-size:.68em; letter-spacing:.08em;
+       padding:10px 16px; text-align:left; border-bottom:1px solid var(--border) }}
+  td {{ padding:11px 16px; border-bottom:1px solid var(--border2);
+       color:var(--text); vertical-align:middle }}
+  tr:last-child td {{ border-bottom:none }}
+  tr:hover td {{ background:rgba(255,255,255,.025) }}
 
   /* ── LEGEND ── */
-  .legend{{ display:flex; gap:16px; padding:12px 16px; flex-wrap:wrap;
-           font-size:.75em; color:var(--muted); background:var(--surface);
-           border-top:1px solid var(--border2) }}
+  .legend {{ display:flex; gap:16px; padding:12px 16px; flex-wrap:wrap;
+            font-size:.75em; color:var(--muted); background:var(--surface);
+            border-top:1px solid var(--border2) }}
 
   /* ── HISTORY SUMMARY ── */
-  .hist-summary{{ padding:16px 20px; background:var(--surface);
-                 display:flex; gap:28px; flex-wrap:wrap; align-items:center;
-                 border-bottom:1px solid var(--border) }}
+  .hist-summary {{ padding:16px 20px; background:var(--surface);
+                  display:flex; gap:28px; flex-wrap:wrap; align-items:center;
+                  border-bottom:1px solid var(--border) }}
 </style>
 </head>
 <body>
 
-<div class="hero">
-  <div class="hero-eyebrow">Opta Value Bets</div>
-  <h1>Apostá con ventaja<br>sobre la casa</h1>
-  <p>Opta es el modelo estadístico que usan los propios bookmakers. Cuando sus cuotas pagan más de lo que Opta calcula, hay una ventaja real para vos.</p>
-  <div class="hero-meta">
-    <span><span class="dot-live"></span> En vivo · {now}</span>
-    <span>📊 {stats['total']} partidos analizados</span>
-    <span style="color:{'var(--green)' if pev_count else 'var(--muted)'}">
-      🎯 {pev_count} apuesta{'s' if pev_count != 1 else ''} con ventaja ahora
-    </span>
+<div class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <div class="header-title">Value Bets <span class="accent">·</span> Opta</div>
+      <div class="header-meta"><span class="dot-live"></span>{now} · {stats['total']} partidos analizados</div>
+    </div>
   </div>
 </div>
 
-<div class="wrap">
+{stat_bar}
 
-  <div class="section-label">Apuestas recomendadas</div>
+<div class="container" style="padding-bottom:60px">
+
+  <div class="section-label">{picks_label}</div>
   {picks_html}
 
-  <div class="section-label">Análisis completo · todos los resultados</div>
-  <div class="table-wrap">
-    {analysis_html}
-    <div class="legend">
-      <span>★ = apuesta recomendada del partido</span>
-      <span>·</span>
-      <span><span style="color:var(--green)">↑</span> cuota subió desde la primera detección (mejor para vos)</span>
-      <span>·</span>
-      <span><span style="color:var(--red)">↓</span> cuota bajó (mercado ya lo corrigió)</span>
-    </div>
-  </div>
+  <div style="margin-top:32px"></div>
 
-  <div class="section-label">Historial de apuestas</div>
-  <div class="table-wrap">
-    {history_html}
-  </div>
+  <details id="historial">
+    <summary>Rendimiento histórico · {n_results} apuestas</summary>
+    <div class="details-inner">
+      {history_html}
+    </div>
+  </details>
+
+  <details id="analisis">
+    <summary>Análisis técnico · {len(bets)} partidos próximos</summary>
+    <div class="details-inner">
+      {analysis_html}
+      <div class="legend">
+        <span>★ = apuesta recomendada del partido</span>
+        <span>·</span>
+        <span><span style="color:var(--green)">↑</span> cuota subió desde la primera detección (mejor)</span>
+        <span>·</span>
+        <span><span style="color:var(--red)">↓</span> cuota bajó (mercado lo corrigió)</span>
+      </div>
+    </div>
+  </details>
 
 </div>
 </body>
