@@ -91,6 +91,51 @@ def load_data():
             LIMIT 100
         """).fetchall()
 
+        # Odds ~8am Chile día anterior (11:00 UTC)
+        results_8am = conn.execute("""
+            SELECT p.comp, p.home, p.away,
+                   COALESCE(p.home_name, p.home) AS home_display,
+                   COALESCE(p.away_name, p.away) AS away_display,
+                   COALESCE(p.league_name, p.comp) AS league_display,
+                   p.match_date, p.match_time_utc,
+                   p.prob_home, p.prob_draw, p.prob_away,
+                   o.odds_home, o.odds_draw, o.odds_away,
+                   r.outcome
+            FROM predictions p
+            JOIN results r ON r.prediction_id = p.id
+            JOIN odds o ON o.id = (
+                SELECT id FROM odds
+                WHERE prediction_id = p.id
+                  AND DATE(fetched_at) = DATE(p.match_date, '-1 day')
+                  AND CAST(strftime('%H', fetched_at) AS INTEGER) BETWEEN 9 AND 13
+                ORDER BY ABS(CAST(strftime('%H', fetched_at) AS INTEGER) - 11)
+                LIMIT 1
+            )
+            ORDER BY p.match_date DESC LIMIT 100
+        """).fetchall()
+
+        # Últimas odds antes del kick-off
+        results_kickoff = conn.execute("""
+            SELECT p.comp, p.home, p.away,
+                   COALESCE(p.home_name, p.home) AS home_display,
+                   COALESCE(p.away_name, p.away) AS away_display,
+                   COALESCE(p.league_name, p.comp) AS league_display,
+                   p.match_date, p.match_time_utc,
+                   p.prob_home, p.prob_draw, p.prob_away,
+                   o.odds_home, o.odds_draw, o.odds_away,
+                   r.outcome
+            FROM predictions p
+            JOIN results r ON r.prediction_id = p.id
+            JOIN odds o ON o.id = (
+                SELECT id FROM odds
+                WHERE prediction_id = p.id
+                  AND strftime('%Y-%m-%d %H:%M', fetched_at) < p.match_date || ' ' || COALESCE(p.match_time_utc, '23:59')
+                ORDER BY fetched_at DESC
+                LIMIT 1
+            )
+            ORDER BY p.match_date DESC LIMIT 100
+        """).fetchall()
+
         stats = conn.execute("""
             SELECT COUNT(*) as total FROM predictions
         """).fetchone()
@@ -98,6 +143,8 @@ def load_data():
     return (
         [dict(r) for r in value_bets],
         [dict(r) for r in results],
+        [dict(r) for r in results_8am],
+        [dict(r) for r in results_kickoff],
         dict(stats),
     )
 
@@ -398,11 +445,15 @@ def build_picks_cards(bets):
     return f'<div class="picks-grid">{cards}</div>'
 
 
-def build_stat_bar(results):
-    """Banner con ROI acumulado. Retorna '' si no hay datos suficientes."""
+def _roi_stats(results, strategy="best"):
+    """
+    Calcula (roi, n_bets, first_date) desde una lista de resultados.
+    strategy="best"  → apuesta al lado con mayor EV positivo (una por partido)
+    strategy="worst" → apuesta al lado con menor EV (mismo set de partidos que "best")
+    """
     total_pl, total_bets, first_date = 0.0, 0, None
     for r in results:
-        pev_bets = []
+        all_valid = []
         for side, opta, odds in [
             ("L", r["prob_home"], r["odds_home"]),
             ("E", r["prob_draw"], r["odds_draw"]),
@@ -411,21 +462,31 @@ def build_stat_bar(results):
             if not opta or not odds or odds < 1.02 or odds > 25:
                 continue
             ev = (opta / 100) * odds - 1
-            if 0 < ev <= 1.0:
-                pev_bets.append({"side": side, "odds": odds, "ev": ev})
-        if not pev_bets:
-            continue
-        best = max(pev_bets, key=lambda x: x["ev"])
-        won = (r["outcome"] == {"L": "H", "E": "D", "V": "A"}[best["side"]])
-        total_pl += round(best["odds"] - 1, 3) if won else -1.0
+            if abs(ev) <= 1.0:
+                all_valid.append({"side": side, "odds": odds, "ev": ev})
+
+        pev = [b for b in all_valid if b["ev"] > 0]
+        if not pev:
+            continue  # solo apostar en partidos donde haya al menos un PEV
+
+        bet = max(pev, key=lambda x: x["ev"]) if strategy == "best" else min(all_valid, key=lambda x: x["ev"])
+
+        won = (r["outcome"] == {"L": "H", "E": "D", "V": "A"}[bet["side"]])
+        total_pl += round(bet["odds"] - 1, 3) if won else -1.0
         total_bets += 1
         if not first_date or r["match_date"] < first_date:
             first_date = r["match_date"]
 
     if not total_bets:
-        return ""
+        return None, 0, None
+    return total_pl / total_bets, total_bets, first_date
 
-    roi = total_pl / total_bets
+
+def build_stat_bar(results):
+    """Banner con ROI acumulado. Retorna '' si no hay datos suficientes."""
+    roi, total_bets, first_date = _roi_stats(results, strategy="best")
+    if not total_bets:
+        return ""
     roi_color = "var(--green)" if roi >= 0 else "var(--red)"
     roi_str = f"{roi:+.1%}"
     try:
@@ -450,14 +511,63 @@ def build_stat_bar(results):
 </div>"""
 
 
+def build_strategy_comparison(r_8pm, r_8am, r_kickoff):
+    """Tabla comparando ROI en 3 ventanas de tiempo + anti-modelo."""
+    strategies = [
+        ("8pm Chile (día anterior)",  r_8pm,      "best"),
+        ("8am Chile (día anterior)",  r_8am,      "best"),
+        ("Cierre de mercado",         r_kickoff,  "best"),
+        ("Anti-modelo (peor EV)",     r_8pm,      "worst"),
+    ]
+    rows = ""
+    for label, results, strategy in strategies:
+        roi, n, _ = _roi_stats(results, strategy=strategy)
+        if roi is None:
+            roi_str = "—"
+            roi_color = "var(--dim)"
+        else:
+            roi_str = f"{roi:+.1%}"
+            roi_color = "var(--green)" if roi >= 0 else "var(--red)"
+
+        is_anti = strategy == "worst"
+        row_style = "opacity:.65" if is_anti else ""
+        border_top = "border-top:2px solid var(--border2)" if is_anti else ""
+        rows += f"""
+        <tr style="{row_style}">
+          <td style="{border_top}">{label}</td>
+          <td style="{border_top};text-align:center;color:var(--muted)">{n if n else "—"}</td>
+          <td style="{border_top};text-align:right;font-weight:700;color:{roi_color}">{roi_str}</td>
+        </tr>"""
+
+    return f"""
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+      <div style="font-size:.65em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                  color:var(--dim);margin-bottom:12px">Comparativa de estrategias</div>
+      <table style="width:auto;font-size:.85em">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:4px 16px 4px 0;color:var(--dim);font-weight:600;
+                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">Estrategia</th>
+            <th style="text-align:center;padding:4px 16px;color:var(--dim);font-weight:600;
+                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">Apuestas</th>
+            <th style="text-align:right;padding:4px 0 4px 16px;color:var(--dim);font-weight:600;
+                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">ROI</th>
+          </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </div>"""
+
+
 def generate():
-    bets, results, stats = load_data()
+    bets, results, results_8am, results_kickoff, stats = load_data()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    stat_bar      = build_stat_bar(results)
-    picks_html    = build_picks_cards(bets)
-    analysis_html = build_value_table(bets)
-    history_html  = build_results_table(results)
+    stat_bar        = build_stat_bar(results)
+    picks_html      = build_picks_cards(bets)
+    analysis_html   = build_value_table(bets)
+    history_html    = build_results_table(results)
+    comparison_html = build_strategy_comparison(results, results_8am, results_kickoff)
 
     # Count matches (not cells) with at least one PEV side
     n_picks = sum(
@@ -632,7 +742,7 @@ def generate():
   </div>
 </div>
 
-{"<details class='stat-details'><summary>" + stat_bar + "</summary><div class='details-inner'>" + history_html + "</div></details>" if stat_bar else ""}
+{"<details class='stat-details'><summary>" + stat_bar + "</summary><div class='details-inner'>" + comparison_html + history_html + "</div></details>" if stat_bar else ""}
 
 <div class="container" style="padding-bottom:60px">
 
