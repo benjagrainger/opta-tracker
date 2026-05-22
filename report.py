@@ -360,18 +360,30 @@ def build_picks_cards(bets):
 
     side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}
     cards = ""
+    today = datetime.now().strftime("%Y-%m-%d")
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     for p in picks:
         hora = utc_to_chile(p.get("match_time_utc"), p.get("match_date"))
-        hora_str = f"Hoy {hora} hs" if hora and p["match_date"] == datetime.now().strftime("%Y-%m-%d") else (f"{hora} hs" if hora else p["match_date"])
 
+        # Date label
+        if p["match_date"] == today:
+            date_label = "Hoy"
+        elif p["match_date"] == tomorrow:
+            date_label = "Mañana"
+        else:
+            try:
+                dt = datetime.strptime(p["match_date"], "%Y-%m-%d")
+                date_label = f"{dt.day} {dt.strftime('%b')}"
+            except Exception:
+                date_label = p["match_date"]
+        hora_str = f"{date_label} · {hora} hs" if hora else date_label
+
+        # Movement arrow (direction only, sin color)
         side_key = {"L": "home", "E": "draw", "V": "away"}[p["side"]]
         first_odds = p.get(f"first_odds_{side_key}")
-        arrow, odds_color = "", "var(--text)"
+        arrow = ""
         if first_odds and abs(p["odds"] - first_odds) >= 0.03:
-            if p["odds"] > first_odds:
-                arrow, odds_color = "↑", "var(--green)"
-            else:
-                arrow, odds_color = "↓", "var(--red)"
+            arrow = "↑" if p["odds"] > first_odds else "↓"
 
         ev_pct = f"+{p['ev']:.1%}"
         cards += f"""
@@ -391,8 +403,8 @@ def build_picks_cards(bets):
               <span class="pick-opta">Opta {p['opta']:.1f}%</span>
             </div>
             <div class="pick-nums">
-              <span class="pick-odds" style="color:{odds_color}">{arrow}{p['odds']:.2f}</span>
               <span class="pick-ev">{ev_pct}</span>
+              <span class="pick-odds">{arrow}{p['odds']:.2f}</span>
             </div>
           </div>
         </div>"""
@@ -551,17 +563,17 @@ def generate():
   .pick-top {{ display:flex; justify-content:space-between; align-items:center;
               font-size:.72em; color:var(--muted); margin-bottom:12px }}
   .pick-teams {{ display:flex; flex-direction:column; gap:3px; margin-bottom:14px; flex:1 }}
-  .pick-home {{ font-size:1em; font-weight:700 }}
-  .pick-away {{ font-size:1em; font-weight:400; color:var(--muted) }}
+  .pick-home {{ font-size:.95em; font-weight:600 }}
+  .pick-away {{ font-size:.95em; font-weight:600 }}
   .pick-footer {{ display:flex; justify-content:space-between; align-items:flex-end;
                  padding-top:12px; border-top:1px solid var(--border2) }}
   .pick-bet {{ display:flex; flex-direction:column; gap:2px }}
   .pick-bet-label {{ font-size:.62em; text-transform:uppercase; letter-spacing:.1em; color:var(--dim) }}
   .pick-bet-side {{ font-size:.9em; font-weight:700 }}
   .pick-opta {{ font-size:.7em; color:var(--muted) }}
-  .pick-nums {{ display:flex; flex-direction:column; align-items:flex-end; gap:2px }}
-  .pick-odds {{ font-size:1.7em; font-weight:800; line-height:1 }}
-  .pick-ev {{ font-size:.8em; font-weight:700; color:var(--green) }}
+  .pick-nums {{ display:flex; flex-direction:column; align-items:flex-end; gap:3px }}
+  .pick-ev {{ font-size:1.45em; font-weight:800; color:var(--green); line-height:1 }}
+  .pick-odds {{ font-size:.8em; color:var(--muted) }}
   .empty-state {{ color:var(--muted); padding:28px 0; font-size:.9em; line-height:1.8 }}
 
   /* ── DETAILS / COLLAPSIBLE ── */
