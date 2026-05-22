@@ -434,17 +434,16 @@ def build_stat_bar(results):
         fd = first_date or "—"
 
     return f"""
-<div class="stat-bar">
-  <div class="container stat-inner">
-    <div class="stat-main">
-      <div class="stat-label-small">Rendimiento del modelo</div>
-      <div class="stat-roi" style="color:{roi_color}">{roi_str}</div>
-    </div>
-    <div class="stat-meta">
-      {total_bets} apuestas registradas<br>
-      <span style="color:var(--dim)">desde {fd}</span>
-    </div>
+<div class="container stat-inner">
+  <div class="stat-main">
+    <div class="stat-label-small">Rendimiento del modelo</div>
+    <div class="stat-roi" style="color:{roi_color}">{roi_str}</div>
   </div>
+  <div class="stat-meta">
+    {total_bets} apuestas registradas<br>
+    <span style="color:var(--dim)">desde {fd}</span>
+  </div>
+  <span class="stat-arrow">▾</span>
 </div>"""
 
 
@@ -522,15 +521,23 @@ def generate():
               animation:blink 2s infinite; margin-right:4px; vertical-align:middle }}
   @keyframes blink {{ 0%,100% {{ opacity:1 }} 50% {{ opacity:.3 }} }}
 
-  /* ── STAT BAR ── */
-  .stat-bar {{ background:var(--surface); border-top:1px solid var(--border2);
-              border-bottom:1px solid var(--border2); margin-top:20px }}
+  /* ── STAT BAR (clickable) ── */
+  .stat-details {{ background:var(--surface); border-top:1px solid var(--border2);
+                  border-bottom:1px solid var(--border2); margin-top:20px }}
+  .stat-details > summary {{ list-style:none; cursor:pointer; display:block }}
+  .stat-details > summary::-webkit-details-marker {{ display:none }}
+  .stat-details > summary::before {{ display:none }}
+  .stat-details > summary:hover .stat-inner {{ background:var(--surface2) }}
+  .stat-details[open] > summary .stat-inner {{ border-bottom:1px solid var(--border) }}
   .stat-inner {{ display:flex; align-items:center; gap:32px; flex-wrap:wrap;
                 padding:20px 0 }}
   .stat-label-small {{ font-size:.65em; font-weight:700; letter-spacing:.12em;
                       text-transform:uppercase; color:var(--dim); margin-bottom:4px }}
   .stat-roi {{ font-size:2.2em; font-weight:800; line-height:1 }}
   .stat-meta {{ font-size:.82em; color:var(--muted); line-height:1.7 }}
+  .stat-arrow {{ margin-left:auto; color:var(--dim); font-size:1.1em;
+                transition:transform .25s; display:inline-block }}
+  .stat-details[open] .stat-arrow {{ transform:rotate(180deg) }}
 
   /* ── SECTION LABEL ── */
   .section-label {{ font-size:.68em; font-weight:700; letter-spacing:.13em;
@@ -617,7 +624,7 @@ def generate():
   </div>
 </div>
 
-{stat_bar}
+{"<details class='stat-details'><summary>" + stat_bar + "</summary><div class='details-inner'>" + history_html + "</div></details>" if stat_bar else ""}
 
 <div class="container" style="padding-bottom:60px">
 
@@ -625,13 +632,6 @@ def generate():
   {picks_html}
 
   <div style="margin-top:32px"></div>
-
-  <details id="historial">
-    <summary>Rendimiento histórico · {n_results} apuestas</summary>
-    <div class="details-inner">
-      {history_html}
-    </div>
-  </details>
 
   <details id="analisis">
     <summary>Análisis técnico · {len(bets)} partidos próximos</summary>
