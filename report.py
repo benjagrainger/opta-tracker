@@ -443,7 +443,10 @@ def build_stat_bar(results):
     {total_bets} apuestas registradas<br>
     <span style="color:var(--dim)">desde {fd}</span>
   </div>
-  <span class="stat-arrow">▾</span>
+  <div class="stat-expand-hint">
+    <span class="stat-hint-text">Ver historial</span>
+    <span class="stat-arrow">▾</span>
+  </div>
 </div>"""
 
 
@@ -535,9 +538,14 @@ def generate():
                       text-transform:uppercase; color:var(--dim); margin-bottom:4px }}
   .stat-roi {{ font-size:2.2em; font-weight:800; line-height:1 }}
   .stat-meta {{ font-size:.82em; color:var(--muted); line-height:1.7 }}
-  .stat-arrow {{ margin-left:auto; color:var(--dim); font-size:1.1em;
-                transition:transform .25s; display:inline-block }}
+  .stat-expand-hint {{ margin-left:auto; display:flex; align-items:center; gap:6px;
+                       color:var(--muted); font-size:.78em; font-weight:600;
+                       border:1px solid var(--border); border-radius:6px;
+                       padding:5px 10px; transition:all .15s; white-space:nowrap }}
+  .stat-details > summary:hover .stat-expand-hint {{ color:var(--text); border-color:var(--muted) }}
+  .stat-arrow {{ font-size:1em; transition:transform .25s; display:inline-block }}
   .stat-details[open] .stat-arrow {{ transform:rotate(180deg) }}
+  .stat-details[open] .stat-expand-hint {{ color:var(--text); border-color:var(--muted) }}
 
   /* ── SECTION LABEL ── */
   .section-label {{ font-size:.68em; font-weight:700; letter-spacing:.13em;
