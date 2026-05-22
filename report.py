@@ -178,21 +178,8 @@ def build_value_table(bets):
     if not bets:
         return '<p style="color:#64748b;padding:20px">No hay partidos en el ticker. Espera al próximo scrape.</p>'
 
-    # Pre-sort: matches with PEV first, then by date/time
-    def match_sort_key(b):
-        evs = []
-        for opta, odds in [(b["prob_home"], b["odds_home"]),
-                           (b["prob_draw"], b["odds_draw"]),
-                           (b["prob_away"], b["odds_away"])]:
-            if opta and odds and 1.02 <= odds <= 25:
-                ev = (opta / 100) * odds - 1
-                if 0 < ev <= 1.0:
-                    evs.append(ev)
-        has_pev = 1 if evs else 0
-        best_ev = max(evs) if evs else 0
-        return (-has_pev, -best_ev, b["match_date"], b.get("match_time_utc") or "")
-
-    sorted_bets = sorted(bets, key=match_sort_key)
+    # Sort by date/time ascending (soonest first)
+    sorted_bets = sorted(bets, key=lambda b: (b["match_date"], b.get("match_time_utc") or "", b["home"]))
 
     rows = ""
     pev_count = 0
