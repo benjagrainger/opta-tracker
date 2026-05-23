@@ -23,7 +23,8 @@ def utc_to_chile(time_str, date_str=None):
     except Exception:
         return time_str
 
-OUTPUT = Path(__file__).parent / "docs" / "index.html"
+OUTPUT         = Path(__file__).parent / "docs" / "index.html"
+HISTORY_OUTPUT = Path(__file__).parent / "docs" / "history.html"
 
 
 def load_data():
@@ -504,10 +505,7 @@ def build_stat_bar(results):
     {total_bets} apuestas registradas<br>
     <span style="color:var(--dim)">desde {fd}</span>
   </div>
-  <div class="stat-expand-hint">
-    <span class="stat-hint-text">Ver historial</span>
-    <span class="stat-arrow">▾</span>
-  </div>
+  <a href="history.html" class="stat-expand-hint">Ver historial →</a>
 </div>"""
 
 
@@ -634,14 +632,9 @@ def generate():
               animation:blink 2s infinite; margin-right:4px; vertical-align:middle }}
   @keyframes blink {{ 0%,100% {{ opacity:1 }} 50% {{ opacity:.3 }} }}
 
-  /* ── STAT BAR (clickable) ── */
-  .stat-details {{ background:var(--surface); border-top:1px solid var(--border2);
-                  border-bottom:1px solid var(--border2); margin-top:20px }}
-  .stat-details > summary {{ list-style:none; cursor:pointer; display:block }}
-  .stat-details > summary::-webkit-details-marker {{ display:none }}
-  .stat-details > summary::before {{ display:none }}
-  .stat-details > summary:hover .stat-inner {{ background:var(--surface2) }}
-  .stat-details[open] > summary .stat-inner {{ border-bottom:1px solid var(--border) }}
+  /* ── STAT BAR ── */
+  .stat-bar {{ background:var(--surface); border-top:1px solid var(--border2);
+              border-bottom:1px solid var(--border2); margin-top:20px }}
   .stat-inner {{ display:flex; align-items:center; gap:32px; flex-wrap:wrap;
                 padding:20px 0 }}
   .stat-label-small {{ font-size:.65em; font-weight:700; letter-spacing:.12em;
@@ -651,11 +644,9 @@ def generate():
   .stat-expand-hint {{ margin-left:auto; display:flex; align-items:center; gap:6px;
                        color:var(--muted); font-size:.78em; font-weight:600;
                        border:1px solid var(--border); border-radius:6px;
-                       padding:5px 10px; transition:all .15s; white-space:nowrap }}
-  .stat-details > summary:hover .stat-expand-hint {{ color:var(--text); border-color:var(--muted) }}
-  .stat-arrow {{ font-size:1em; transition:transform .25s; display:inline-block }}
-  .stat-details[open] .stat-arrow {{ transform:rotate(180deg) }}
-  .stat-details[open] .stat-expand-hint {{ color:var(--text); border-color:var(--muted) }}
+                       padding:5px 10px; transition:all .15s; white-space:nowrap;
+                       text-decoration:none }}
+  .stat-expand-hint:hover {{ color:var(--text); border-color:var(--muted) }}
 
   /* ── SECTION LABEL ── */
   .section-label {{ font-size:.68em; font-weight:700; letter-spacing:.13em;
@@ -742,7 +733,7 @@ def generate():
   </div>
 </div>
 
-{"<details class='stat-details'><summary>" + stat_bar + "</summary><div class='details-inner'>" + comparison_html + history_html + "</div></details>" if stat_bar else ""}
+{"<div class='stat-bar'>" + stat_bar + "</div>" if stat_bar else ""}
 
 <div class="container" style="padding-bottom:60px">
 
@@ -772,6 +763,90 @@ def generate():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(html, encoding="utf-8")
     print(f"  Dashboard generado → {OUTPUT}")
+
+    generate_history(results, results_8am, results_kickoff)
+
+
+def generate_history(results, results_8am, results_kickoff):
+    """Genera docs/history.html con comparativa de estrategias + historial partido a partido."""
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    comparison_html = build_strategy_comparison(results, results_8am, results_kickoff)
+    history_html    = build_results_table(results)
+
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historial · Opta</title>
+<style>
+  :root {{
+    --bg:#0d1117; --surface:#161b22; --surface2:#1c2128;
+    --border:#30363d; --border2:#21262d;
+    --green:#3fb950; --red:#f85149; --yellow:#d29922;
+    --text:#e6edf3; --muted:#8b949e; --dim:#484f58;
+  }}
+  *, *::before, *::after {{ box-sizing:border-box; margin:0; padding:0 }}
+  body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
+         background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5 }}
+  .container {{ max-width:1100px; margin:0 auto; padding:0 24px }}
+  .site-header {{ padding:28px 0 20px; border-bottom:1px solid var(--border2) }}
+  .header-inner {{ display:flex; justify-content:space-between; align-items:baseline;
+                  flex-wrap:wrap; gap:12px }}
+  .back-link {{ font-size:.82em; color:var(--muted); text-decoration:none;
+               display:flex; align-items:center; gap:5px; transition:color .15s }}
+  .back-link:hover {{ color:var(--text) }}
+  .header-title {{ font-size:1.1em; font-weight:800 }}
+  .header-meta {{ font-size:.75em; color:var(--dim) }}
+  table {{ width:100%; border-collapse:collapse; font-size:.85em }}
+  th {{ background:var(--surface); color:var(--muted); font-weight:600;
+       text-transform:uppercase; font-size:.68em; letter-spacing:.08em;
+       padding:10px 16px; text-align:left; border-bottom:1px solid var(--border) }}
+  td {{ padding:11px 16px; border-bottom:1px solid var(--border2);
+       color:var(--text); vertical-align:middle }}
+  tr:last-child td {{ border-bottom:none }}
+  tr:hover td {{ background:rgba(255,255,255,.025) }}
+  .hist-summary {{ padding:16px 20px; background:var(--surface);
+                  display:flex; gap:28px; flex-wrap:wrap; align-items:center;
+                  border-bottom:1px solid var(--border) }}
+  .section-label {{ font-size:.68em; font-weight:700; letter-spacing:.13em;
+                   text-transform:uppercase; color:var(--muted);
+                   margin:32px 0 14px; padding-bottom:8px;
+                   border-bottom:1px solid var(--border2) }}
+  .table-wrap {{ border:1px solid var(--border); border-radius:8px; overflow:hidden; overflow-x:auto }}
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <a href="index.html" class="back-link">← Volver al dashboard</a>
+      <div class="header-title">Historial de apuestas</div>
+      <div class="header-meta">{now}</div>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:60px">
+
+  <div class="section-label">Comparativa de estrategias</div>
+  <div class="table-wrap">
+    {comparison_html}
+  </div>
+
+  <div class="section-label">Apuesta a apuesta · cuota 8pm Chile día anterior</div>
+  <div class="table-wrap">
+    {history_html}
+  </div>
+
+</div>
+</body>
+</html>"""
+
+    HISTORY_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_OUTPUT.write_text(html, encoding="utf-8")
+    print(f"  Historial generado  → {HISTORY_OUTPUT}")
 
 
 if __name__ == "__main__":

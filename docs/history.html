@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historial · Opta</title>
+<style>
+  :root {
+    --bg:#0d1117; --surface:#161b22; --surface2:#1c2128;
+    --border:#30363d; --border2:#21262d;
+    --green:#3fb950; --red:#f85149; --yellow:#d29922;
+    --text:#e6edf3; --muted:#8b949e; --dim:#484f58;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
+         background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5 }
+  .container { max-width:1100px; margin:0 auto; padding:0 24px }
+  .site-header { padding:28px 0 20px; border-bottom:1px solid var(--border2) }
+  .header-inner { display:flex; justify-content:space-between; align-items:baseline;
+                  flex-wrap:wrap; gap:12px }
+  .back-link { font-size:.82em; color:var(--muted); text-decoration:none;
+               display:flex; align-items:center; gap:5px; transition:color .15s }
+  .back-link:hover { color:var(--text) }
+  .header-title { font-size:1.1em; font-weight:800 }
+  .header-meta { font-size:.75em; color:var(--dim) }
+  table { width:100%; border-collapse:collapse; font-size:.85em }
+  th { background:var(--surface); color:var(--muted); font-weight:600;
+       text-transform:uppercase; font-size:.68em; letter-spacing:.08em;
+       padding:10px 16px; text-align:left; border-bottom:1px solid var(--border) }
+  td { padding:11px 16px; border-bottom:1px solid var(--border2);
+       color:var(--text); vertical-align:middle }
+  tr:last-child td { border-bottom:none }
+  tr:hover td { background:rgba(255,255,255,.025) }
+  .hist-summary { padding:16px 20px; background:var(--surface);
+                  display:flex; gap:28px; flex-wrap:wrap; align-items:center;
+                  border-bottom:1px solid var(--border) }
+  .section-label { font-size:.68em; font-weight:700; letter-spacing:.13em;
+                   text-transform:uppercase; color:var(--muted);
+                   margin:32px 0 14px; padding-bottom:8px;
+                   border-bottom:1px solid var(--border2) }
+  .table-wrap { border:1px solid var(--border); border-radius:8px; overflow:hidden; overflow-x:auto }
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <div class="container">
+    <div class="header-inner">
+      <a href="index.html" class="back-link">← Volver al dashboard</a>
+      <div class="header-title">Historial de apuestas</div>
+      <div class="header-meta">23/05/2026 08:54</div>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:60px">
+
+  <div class="section-label">Comparativa de estrategias</div>
+  <div class="table-wrap">
+    
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+      <div style="font-size:.65em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                  color:var(--dim);margin-bottom:12px">Comparativa de estrategias</div>
+      <table style="width:auto;font-size:.85em">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:4px 16px 4px 0;color:var(--dim);font-weight:600;
+                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">Estrategia</th>
+            <th style="text-align:center;padding:4px 16px;color:var(--dim);font-weight:600;
+                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">Apuestas</th>
+            <th style="text-align:right;padding:4px 0 4px 16px;color:var(--dim);font-weight:600;
+                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">ROI</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr style="">
+          <td style="">8pm Chile (día anterior)</td>
+          <td style=";text-align:center;color:var(--muted)">23</td>
+          <td style=";text-align:right;font-weight:700;color:var(--red)">-3.0%</td>
+        </tr>
+        <tr style="">
+          <td style="">8am Chile (día anterior)</td>
+          <td style=";text-align:center;color:var(--muted)">1</td>
+          <td style=";text-align:right;font-weight:700;color:var(--red)">-100.0%</td>
+        </tr>
+        <tr style="">
+          <td style="">Cierre de mercado</td>
+          <td style=";text-align:center;color:var(--muted)">27</td>
+          <td style=";text-align:right;font-weight:700;color:var(--red)">-17.4%</td>
+        </tr>
+        <tr style="opacity:.65">
+          <td style="border-top:2px solid var(--border2)">Anti-modelo (peor EV)</td>
+          <td style="border-top:2px solid var(--border2);text-align:center;color:var(--muted)">23</td>
+          <td style="border-top:2px solid var(--border2);text-align:right;font-weight:700;color:var(--red)">-50.7%</td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-label">Apuesta a apuesta · cuota 8pm Chile día anterior</div>
+  <div class="table-wrap">
+    
+    <div class="hist-summary">
+      <span style="color:var(--muted);font-size:.88em">23 apuestas registradas</span>
+      <span style="font-size:.88em">Rendimiento: <strong style="color:var(--red);font-size:1.3em">-3.0%</strong></span>
+      <span style="color:var(--dim);font-size:.75em">ROI por apuesta · cuota del día anterior a las 8pm Chile</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Partido</th><th>Torneo</th><th>Fecha</th>
+        <th>Resultado</th><th>Apuestas PEV → P&L</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>SC Freiburg<br>Aston Villa</td>
+          <td>⚽ UEFA Europa League</td>
+          <td>2026-05-20<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">0-3</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@5.30 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>San Jose Earthquakes<br>FC Dallas</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">22:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">2-3</td>
+          <td><span style="color:#16a34a;margin-right:10px">✅ V@4.40 <strong>+3.40u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Sevilla<br>Real Madrid</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">0-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@4.00 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Real Sociedad<br>Valencia</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">3-4</td>
+          <td><span style="color:#16a34a;margin-right:10px">✅ V@3.75 <strong>+2.75u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Paris FC<br>Paris Saint Germain</td>
+          <td>🇫🇷 Ligue 1</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">2-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ E@4.75 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Oviedo<br>Alaves</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">0-1</td>
+          <td><span style="color:#16a34a;margin-right:10px">✅ V@2.70 <strong>+1.70u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Osasuna<br>Espanyol</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-2</td>
+          <td><span style="color:#16a34a;margin-right:10px">✅ V@3.90 <strong>+2.90u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Nice<br>Metz</td>
+          <td>🇫🇷 Ligue 1</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">0-0</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@10.25 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Inter Miami<br>Portland Timbers</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">18:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">2-0</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@8.00 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Barcelona<br>Real Betis</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">15:15 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">3-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@9.60 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Austin<br>Sporting Kansas City</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">20:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-2</td>
+          <td><span style="color:#16a34a;margin-right:10px">✅ V@5.50 <strong>+4.50u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Atletico Madrid<br>Girona</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-0</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@5.60 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Athletic Club<br>Celta Vigo</td>
+          <td>🇪🇸 La Liga</td>
+          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@4.35 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>West Ham W<br>Manchester City W</td>
+          <td>⚽ FA WSL</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-4</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@12.00 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Werder Bremen<br>Borussia Dortmund</td>
+          <td>🇩🇪 Bundesliga</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">09:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">0-2</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@3.40 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Orlando City SC<br>Atlanta United FC</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@2.02 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Liverpool W<br>Arsenal W</td>
+          <td>⚽ FA WSL</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-3</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@9.80 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Bayer Leverkusen<br>Hamburger SV</td>
+          <td>🇩🇪 Bundesliga</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">09:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@9.40 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>London City Lionesses<br>Aston Villa W</td>
+          <td>⚽ FA WSL</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">2-1</td>
+          <td><span style="color:#16a34a;margin-right:10px">✅ L@2.06 <strong>+1.06u</strong></span></td>
+        </tr>
+        <tr>
+          <td>FCB<br>KOE</td>
+          <td>🇩🇪 BUN</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">05:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">5-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ E@9.00 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>DC United<br>St. Louis City</td>
+          <td>🇺🇸 Major League Soccer</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-1</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ L@2.40 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Chelsea W<br>Manchester United W</td>
+          <td>⚽ FA WSL</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">1-0</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ V@6.00 <strong>-1.00u</strong></span></td>
+        </tr>
+        <tr>
+          <td>Borussia Mönchengladbach<br>1899 Hoffenheim</td>
+          <td>🇩🇪 Bundesliga</td>
+          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">09:30 hs CL</span></td>
+          <td style="font-weight:bold;font-size:1.1em">4-0</td>
+          <td><span style="color:#dc2626;margin-right:10px">❌ E@4.50 <strong>-1.00u</strong></span></td>
+        </tr></tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

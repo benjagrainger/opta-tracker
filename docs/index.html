@@ -32,14 +32,9 @@
               animation:blink 2s infinite; margin-right:4px; vertical-align:middle }
   @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:.3 } }
 
-  /* ── STAT BAR (clickable) ── */
-  .stat-details { background:var(--surface); border-top:1px solid var(--border2);
-                  border-bottom:1px solid var(--border2); margin-top:20px }
-  .stat-details > summary { list-style:none; cursor:pointer; display:block }
-  .stat-details > summary::-webkit-details-marker { display:none }
-  .stat-details > summary::before { display:none }
-  .stat-details > summary:hover .stat-inner { background:var(--surface2) }
-  .stat-details[open] > summary .stat-inner { border-bottom:1px solid var(--border) }
+  /* ── STAT BAR ── */
+  .stat-bar { background:var(--surface); border-top:1px solid var(--border2);
+              border-bottom:1px solid var(--border2); margin-top:20px }
   .stat-inner { display:flex; align-items:center; gap:32px; flex-wrap:wrap;
                 padding:20px 0 }
   .stat-label-small { font-size:.65em; font-weight:700; letter-spacing:.12em;
@@ -49,11 +44,9 @@
   .stat-expand-hint { margin-left:auto; display:flex; align-items:center; gap:6px;
                        color:var(--muted); font-size:.78em; font-weight:600;
                        border:1px solid var(--border); border-radius:6px;
-                       padding:5px 10px; transition:all .15s; white-space:nowrap }
-  .stat-details > summary:hover .stat-expand-hint { color:var(--text); border-color:var(--muted) }
-  .stat-arrow { font-size:1em; transition:transform .25s; display:inline-block }
-  .stat-details[open] .stat-arrow { transform:rotate(180deg) }
-  .stat-details[open] .stat-expand-hint { color:var(--text); border-color:var(--muted) }
+                       padding:5px 10px; transition:all .15s; white-space:nowrap;
+                       text-decoration:none }
+  .stat-expand-hint:hover { color:var(--text); border-color:var(--muted) }
 
   /* ── SECTION LABEL ── */
   .section-label { font-size:.68em; font-weight:700; letter-spacing:.13em;
@@ -135,12 +128,12 @@
   <div class="container">
     <div class="header-inner">
       <div class="header-title">Value Bets <span class="accent">·</span> Opta</div>
-      <div class="header-meta"><span class="dot-live"></span>22/05/2026 10:48 · 155 partidos analizados</div>
+      <div class="header-meta"><span class="dot-live"></span>23/05/2026 08:54 · 155 partidos analizados</div>
     </div>
   </div>
 </div>
 
-<details class='stat-details'><summary>
+<div class='stat-bar'>
 <div class="container stat-inner">
   <div class="stat-main">
     <div class="stat-label-small">Rendimiento del modelo</div>
@@ -150,221 +143,8 @@
     23 apuestas registradas<br>
     <span style="color:var(--dim)">desde 16/05/2026</span>
   </div>
-  <div class="stat-expand-hint">
-    <span class="stat-hint-text">Ver historial</span>
-    <span class="stat-arrow">▾</span>
-  </div>
-</div></summary><div class='details-inner'>
-    <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
-      <div style="font-size:.65em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-                  color:var(--dim);margin-bottom:12px">Comparativa de estrategias</div>
-      <table style="width:auto;font-size:.85em">
-        <thead>
-          <tr>
-            <th style="text-align:left;padding:4px 16px 4px 0;color:var(--dim);font-weight:600;
-                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">Estrategia</th>
-            <th style="text-align:center;padding:4px 16px;color:var(--dim);font-weight:600;
-                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">Apuestas</th>
-            <th style="text-align:right;padding:4px 0 4px 16px;color:var(--dim);font-weight:600;
-                       font-size:.75em;letter-spacing:.05em;text-transform:uppercase">ROI</th>
-          </tr>
-        </thead>
-        <tbody>
-        <tr style="">
-          <td style="">8pm Chile (día anterior)</td>
-          <td style=";text-align:center;color:var(--muted)">23</td>
-          <td style=";text-align:right;font-weight:700;color:var(--red)">-3.0%</td>
-        </tr>
-        <tr style="">
-          <td style="">8am Chile (día anterior)</td>
-          <td style=";text-align:center;color:var(--muted)">1</td>
-          <td style=";text-align:right;font-weight:700;color:var(--red)">-100.0%</td>
-        </tr>
-        <tr style="">
-          <td style="">Cierre de mercado</td>
-          <td style=";text-align:center;color:var(--muted)">27</td>
-          <td style=";text-align:right;font-weight:700;color:var(--red)">-17.4%</td>
-        </tr>
-        <tr style="opacity:.65">
-          <td style="border-top:2px solid var(--border2)">Anti-modelo (peor EV)</td>
-          <td style="border-top:2px solid var(--border2);text-align:center;color:var(--muted)">23</td>
-          <td style="border-top:2px solid var(--border2);text-align:right;font-weight:700;color:var(--red)">-50.7%</td>
-        </tr></tbody>
-      </table>
-    </div>
-    <div class="hist-summary">
-      <span style="color:var(--muted);font-size:.88em">23 apuestas registradas</span>
-      <span style="font-size:.88em">Rendimiento: <strong style="color:var(--red);font-size:1.3em">-3.0%</strong></span>
-      <span style="color:var(--dim);font-size:.75em">ROI por apuesta · cuota del día anterior a las 8pm Chile</span>
-    </div>
-    <table>
-      <thead><tr>
-        <th>Partido</th><th>Torneo</th><th>Fecha</th>
-        <th>Resultado</th><th>Apuestas PEV → P&L</th>
-      </tr></thead>
-      <tbody>
-        <tr>
-          <td>SC Freiburg<br>Aston Villa</td>
-          <td>⚽ UEFA Europa League</td>
-          <td>2026-05-20<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">0-3</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@5.30 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>San Jose Earthquakes<br>FC Dallas</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">22:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">2-3</td>
-          <td><span style="color:#16a34a;margin-right:10px">✅ V@4.40 <strong>+3.40u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Sevilla<br>Real Madrid</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">0-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@4.00 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Real Sociedad<br>Valencia</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">3-4</td>
-          <td><span style="color:#16a34a;margin-right:10px">✅ V@3.75 <strong>+2.75u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Paris FC<br>Paris Saint Germain</td>
-          <td>🇫🇷 Ligue 1</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">2-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ E@4.75 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Oviedo<br>Alaves</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">0-1</td>
-          <td><span style="color:#16a34a;margin-right:10px">✅ V@2.70 <strong>+1.70u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Osasuna<br>Espanyol</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-2</td>
-          <td><span style="color:#16a34a;margin-right:10px">✅ V@3.90 <strong>+2.90u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Nice<br>Metz</td>
-          <td>🇫🇷 Ligue 1</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">15:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">0-0</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@10.25 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Inter Miami<br>Portland Timbers</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">18:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">2-0</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@8.00 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Barcelona<br>Real Betis</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">15:15 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">3-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@9.60 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Austin<br>Sporting Kansas City</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">20:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-2</td>
-          <td><span style="color:#16a34a;margin-right:10px">✅ V@5.50 <strong>+4.50u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Atletico Madrid<br>Girona</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-0</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@5.60 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Athletic Club<br>Celta Vigo</td>
-          <td>🇪🇸 La Liga</td>
-          <td>2026-05-17<br><span style="color:#64748b;font-size:.82em">13:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@4.35 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>West Ham W<br>Manchester City W</td>
-          <td>⚽ FA WSL</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-4</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@12.00 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Werder Bremen<br>Borussia Dortmund</td>
-          <td>🇩🇪 Bundesliga</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">09:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">0-2</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@3.40 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Orlando City SC<br>Atlanta United FC</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@2.02 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Liverpool W<br>Arsenal W</td>
-          <td>⚽ FA WSL</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-3</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@9.80 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Bayer Leverkusen<br>Hamburger SV</td>
-          <td>🇩🇪 Bundesliga</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">09:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@9.40 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>London City Lionesses<br>Aston Villa W</td>
-          <td>⚽ FA WSL</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">2-1</td>
-          <td><span style="color:#16a34a;margin-right:10px">✅ L@2.06 <strong>+1.06u</strong></span></td>
-        </tr>
-        <tr>
-          <td>FCB<br>KOE</td>
-          <td>🇩🇪 BUN</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">05:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">5-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ E@9.00 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>DC United<br>St. Louis City</td>
-          <td>🇺🇸 Major League Soccer</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">19:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-1</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ L@2.40 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Chelsea W<br>Manchester United W</td>
-          <td>⚽ FA WSL</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">08:00 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">1-0</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ V@6.00 <strong>-1.00u</strong></span></td>
-        </tr>
-        <tr>
-          <td>Borussia Mönchengladbach<br>1899 Hoffenheim</td>
-          <td>🇩🇪 Bundesliga</td>
-          <td>2026-05-16<br><span style="color:#64748b;font-size:.82em">09:30 hs CL</span></td>
-          <td style="font-weight:bold;font-size:1.1em">4-0</td>
-          <td><span style="color:#dc2626;margin-right:10px">❌ E@4.50 <strong>-1.00u</strong></span></td>
-        </tr></tbody>
-    </table></div></details>
+  <a href="history.html" class="stat-expand-hint">Ver historial →</a>
+</div></div>
 
 <div class="container" style="padding-bottom:60px">
 
@@ -373,7 +153,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Championship</span>
-            <span>Mañana · 11:30 hs</span>
+            <span>Hoy · 11:30 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Hull City</span>
@@ -394,7 +174,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>Mañana · 14:45 hs</span>
+            <span>Hoy · 14:45 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Lazio</span>
@@ -415,7 +195,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇪🇸 La Liga</span>
-            <span>Mañana · 15:00 hs</span>
+            <span>Hoy · 15:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Real Madrid</span>
@@ -436,7 +216,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇪🇸 La Liga</span>
-            <span>Mañana · 15:00 hs</span>
+            <span>Hoy · 15:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Mallorca</span>
@@ -457,7 +237,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇪🇸 La Liga</span>
-            <span>Mañana · 15:00 hs</span>
+            <span>Hoy · 15:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Getafe</span>
@@ -478,7 +258,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇪🇸 La Liga</span>
-            <span>Mañana · 15:00 hs</span>
+            <span>Hoy · 15:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Girona</span>
@@ -499,7 +279,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇪🇸 La Liga</span>
-            <span>Mañana · 15:00 hs</span>
+            <span>Hoy · 15:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Valencia</span>
@@ -520,7 +300,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇪🇸 La Liga</span>
-            <span>Mañana · 15:00 hs</span>
+            <span>Hoy · 15:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Celta Vigo</span>
@@ -541,7 +321,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇺🇸 Major League Soccer</span>
-            <span>24 May · 20:30 hs</span>
+            <span>Mañana · 20:30 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Chicago Fire</span>
@@ -562,7 +342,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇺🇸 Major League Soccer</span>
-            <span>24 May · 20:30 hs</span>
+            <span>Mañana · 20:30 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Nashville SC</span>
@@ -583,7 +363,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇺🇸 Major League Soccer</span>
-            <span>24 May · 20:30 hs</span>
+            <span>Mañana · 20:30 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Sporting Kansas City</span>
@@ -604,7 +384,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇺🇸 Major League Soccer</span>
-            <span>24 May · 21:30 hs</span>
+            <span>Mañana · 21:30 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Portland Timbers</span>
@@ -625,7 +405,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
-            <span>24 May · 11:00 hs</span>
+            <span>Mañana · 11:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Manchester City</span>
@@ -646,7 +426,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
-            <span>24 May · 11:00 hs</span>
+            <span>Mañana · 11:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Tottenham</span>
@@ -667,7 +447,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
-            <span>24 May · 11:00 hs</span>
+            <span>Mañana · 11:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Brighton</span>
@@ -688,7 +468,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
-            <span>24 May · 11:00 hs</span>
+            <span>Mañana · 11:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Burnley</span>
@@ -709,7 +489,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
-            <span>24 May · 11:00 hs</span>
+            <span>Mañana · 11:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Sunderland</span>
@@ -730,7 +510,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>24 May · 12:00 hs</span>
+            <span>Mañana · 12:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Napoli</span>
@@ -751,7 +531,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>24 May · 14:45 hs</span>
+            <span>Mañana · 14:45 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">AC Milan</span>
@@ -772,7 +552,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>24 May · 14:45 hs</span>
+            <span>Mañana · 14:45 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Torino</span>
@@ -793,7 +573,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>24 May · 14:45 hs</span>
+            <span>Mañana · 14:45 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Hellas Verona</span>
@@ -814,7 +594,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>24 May · 14:45 hs</span>
+            <span>Mañana · 14:45 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Cremonese</span>
@@ -835,7 +615,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>⚽ Serie A</span>
-            <span>24 May · 14:45 hs</span>
+            <span>Mañana · 14:45 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Lecce</span>
@@ -856,7 +636,7 @@
         <div class="pick-card">
           <div class="pick-top">
             <span>🇺🇸 Major League Soccer</span>
-            <span>24 May · 17:00 hs</span>
+            <span>Mañana · 17:00 hs</span>
           </div>
           <div class="pick-teams">
             <span class="pick-home">Columbus Crew</span>
@@ -899,12 +679,12 @@
   <div style="margin-top:32px"></div>
 
   <details id="analisis">
-    <summary>Análisis técnico · 46 partidos próximos</summary>
+    <summary>Análisis técnico · 45 partidos próximos</summary>
     <div class="details-inner">
       
     <div style="padding:10px 20px;background:#0f172a;border-bottom:1px solid #334155;
                 font-size:.82em;color:#64748b">
-      46 partidos analizados · <span style="color:#4ade80;font-weight:bold">25 con PEV ★</span> · <span style="color:#475569">21 sin valor</span>
+      45 partidos analizados · <span style="color:#4ade80;font-weight:bold">25 con PEV ★</span> · <span style="color:#475569">20 sin valor</span>
     </div>
     <table>
       <thead><tr>
@@ -912,14 +692,6 @@
         <th>Local</th><th>Empate</th><th>Visitante</th>
       </tr></thead>
       <tbody>
-        <tr style="">
-          <td>Fiorentina<br>Atalanta</td>
-          <td>⚽ Serie A</td>
-          <td>2026-05-22<br><span style="color:#64748b;font-size:.82em">14:45 hs CL</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-3.8%</span><br><span style="color:#4ade80;font-size:.8em">↑2.68<span style="color:#64748b;font-size:.75em"> 2.64</span></span><br><span style="color:#64748b;font-size:.75em">35.9%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-8.9%</span><br><span style="color:#f87171;font-size:.8em">↓3.45<span style="color:#64748b;font-size:.75em"> 3.50</span></span><br><span style="color:#64748b;font-size:.75em">26.4%</span></td>
-          <td style="color:#94a3b8"><span style="font-size:.9em">-7.4%</span><br><span style="color:#94a3b8;font-size:.8em">2.45</span><br><span style="color:#64748b;font-size:.75em">37.8%</span></td>
-        </tr>
         <tr style="">
           <td>Hull City<br>Middlesbrough</td>
           <td>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Championship</td>
