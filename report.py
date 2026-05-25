@@ -144,7 +144,8 @@ def load_data():
             SELECT COUNT(*) as total FROM predictions
         """).fetchone()
 
-        # Partidos en vivo o pendientes de confirmar: pasaron su hora de inicio, sin resultado aún
+        # Partidos en vivo o pendientes de confirmar.
+        # Ventana: entre -5h (partido más largo posible) y +5min del inicio.
         try:
             live_matches = conn.execute("""
                 SELECT p.comp, p.home, p.away,
@@ -158,7 +159,8 @@ def load_data():
                 WHERE p.id NOT IN (SELECT prediction_id FROM results)
                   AND (
                     l.prediction_id IS NOT NULL
-                    OR (p.match_date || ' ' || COALESCE(p.match_time_utc,'23:59')) < datetime('now')
+                    OR (p.match_date || ' ' || COALESCE(p.match_time_utc,'23:59'))
+                       BETWEEN datetime('now', '-5 hours') AND datetime('now', '+5 minutes')
                   )
                 ORDER BY p.match_date, p.match_time_utc
             """).fetchall()
