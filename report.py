@@ -144,12 +144,34 @@ def load_data():
             SELECT COUNT(*) as total FROM predictions
         """).fetchone()
 
+        # Partidos en vivo o pendientes de confirmar: pasaron su hora de inicio, sin resultado aún
+        try:
+            live_matches = conn.execute("""
+                SELECT p.comp, p.home, p.away,
+                       COALESCE(p.home_name, p.home) AS home_display,
+                       COALESCE(p.away_name, p.away) AS away_display,
+                       COALESCE(p.league_name, p.comp) AS league_display,
+                       p.match_date, p.match_time_utc,
+                       l.status, l.home_score, l.away_score, l.elapsed, l.updated_at
+                FROM predictions p
+                LEFT JOIN live_scores l ON l.prediction_id = p.id
+                WHERE p.id NOT IN (SELECT prediction_id FROM results)
+                  AND (
+                    l.prediction_id IS NOT NULL
+                    OR (p.match_date || ' ' || COALESCE(p.match_time_utc,'23:59')) < datetime('now')
+                  )
+                ORDER BY p.match_date, p.match_time_utc
+            """).fetchall()
+        except Exception:
+            live_matches = []
+
     return (
         [dict(r) for r in value_bets],
         [dict(r) for r in results],
         [dict(r) for r in results_8am],
         [dict(r) for r in results_kickoff],
         dict(stats),
+        [dict(r) for r in live_matches],
     )
 
 
@@ -494,6 +516,77 @@ def _roi_stats(results, strategy="best"):
     return total_pl / total_bets, total_bets, first_date
 
 
+def build_live_section(live_matches):
+    """Sección de partidos en juego o pendientes de confirmar resultado."""
+    if not live_matches:
+        return ""
+
+    STATUS_MAP = {
+        "1H":   ("live",    "1ª parte"),
+        "2H":   ("live",    "2ª parte"),
+        "ET":   ("live",    "Prórroga"),
+        "P":    ("live",    "Penales"),
+        "LIVE": ("live",    "En juego"),
+        "HT":   ("paused",  "Descanso"),
+        "BT":   ("paused",  "Pausa"),
+        "SUSP": ("paused",  "Suspendido"),
+        "INT":  ("paused",  "Interrumpido"),
+    }
+
+    has_live = any(m.get("status") in STATUS_MAP and STATUS_MAP[m["status"]][0] == "live"
+                   for m in live_matches)
+
+    cards = ""
+    for m in live_matches:
+        status  = m.get("status")
+        hs      = m.get("home_score")
+        as_     = m.get("away_score")
+        elapsed = m.get("elapsed")
+
+        if status in STATUS_MAP:
+            kind, label = STATUS_MAP[status]
+            elapsed_str = f" · {elapsed}'" if elapsed else ""
+            badge_class = f"live-badge-{kind}"
+            badge_html  = f'<span class="live-badge {badge_class}">{label}{elapsed_str}</span>'
+            score_html  = f'{hs} – {as_}' if hs is not None else '— – —'
+        else:
+            # Sin datos de live_scores todavía: partido comenzado pero sin info
+            chile_date, hora = utc_to_chile_dt(m.get("match_time_utc"), m.get("match_date"))
+            hora_str = f"{hora} hs CL" if hora else chile_date
+            badge_html  = f'<span class="live-badge live-badge-pending">⏳ Desde {hora_str}</span>'
+            score_html  = '— – —'
+
+        cards += f"""
+        <div class="live-card">
+          <div class="live-teams">
+            <span class="live-team">{m['home_display']}</span>
+            <span class="live-score-num">{score_html}</span>
+            <span class="live-team away">{m['away_display']}</span>
+          </div>
+          <div class="live-footer">
+            {badge_html}
+            <span class="live-league">{m['league_display']}</span>
+          </div>
+        </div>"""
+
+    n = len(live_matches)
+    label_txt = f"{n} partido{'s' if n != 1 else ''} en curso"
+    return f"""
+<div class="live-section">
+  <div class="container">
+    <div class="live-header">
+      <span class="section-label">{label_txt}</span>
+    </div>
+    <div class="live-cards">{cards}
+    </div>
+  </div>
+</div>
+<script>
+// Auto-recarga cada 2 minutos si hay algún partido en juego
+{'(function(){ setTimeout(function(){ location.reload(); }, 120000); })();' if has_live else ''}
+</script>"""
+
+
 def build_stat_bar(results):
     """Banner con ROI acumulado. Retorna '' si no hay datos suficientes."""
     roi, total_bets, first_date = _roi_stats(results, strategy="best")
@@ -569,10 +662,11 @@ def build_strategy_comparison(r_8pm, r_8am, r_kickoff):
 
 
 def generate():
-    bets, results, results_8am, results_kickoff, stats = load_data()
+    bets, results, results_8am, results_kickoff, stats, live_matches = load_data()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     stat_bar      = build_stat_bar(results)
+    live_html     = build_live_section(live_matches)
     analysis_html = build_value_table(bets)
 
     n_pev = sum(
@@ -690,6 +784,26 @@ def generate():
             font-size:.75em; color:var(--muted); background:var(--surface);
             border-top:1px solid var(--border2) }}
 
+  /* ── LIVE SECTION ── */
+  .live-section {{ background:var(--surface); border-top:1px solid var(--border2);
+                  border-bottom:1px solid var(--border2); padding:16px 0 20px }}
+  .live-header  {{ margin-bottom:14px }}
+  .live-cards   {{ display:flex; gap:12px; flex-wrap:wrap }}
+  .live-card    {{ background:var(--bg); border:1px solid var(--border); border-radius:10px;
+                  padding:14px 18px; min-width:210px; flex:1; max-width:320px }}
+  .live-teams   {{ display:flex; align-items:center; justify-content:space-between;
+                  gap:8px; margin-bottom:10px }}
+  .live-team    {{ font-size:.88em; font-weight:600; color:var(--text); flex:1 }}
+  .live-team.away {{ text-align:right }}
+  .live-score-num {{ font-size:1.35em; font-weight:800; color:var(--text);
+                     white-space:nowrap; text-align:center; flex-shrink:0 }}
+  .live-footer  {{ display:flex; align-items:center; justify-content:space-between; gap:8px }}
+  .live-badge   {{ font-size:.70em; font-weight:700; border-radius:4px; padding:2px 8px }}
+  .live-badge-live    {{ color:#ef4444; background:rgba(239,68,68,.14) }}
+  .live-badge-paused  {{ color:#f59e0b; background:rgba(245,158,11,.12) }}
+  .live-badge-pending {{ color:#64748b; background:rgba(100,116,139,.10) }}
+  .live-league  {{ font-size:.70em; color:var(--dim); text-align:right }}
+
   /* ── HISTORY SUMMARY ── */
   .hist-summary {{ padding:16px 20px; background:var(--surface);
                   display:flex; gap:28px; flex-wrap:wrap; align-items:center;
@@ -708,6 +822,8 @@ def generate():
 </div>
 
 {"<div class='stat-bar'>" + stat_bar + "</div>" if stat_bar else ""}
+
+{live_html}
 
 <div class="container" style="padding-bottom:60px">
 

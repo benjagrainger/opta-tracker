@@ -53,6 +53,15 @@ CREATE TABLE IF NOT EXISTS prob_history (
     prob_draw       REAL NOT NULL,
     prob_away       REAL NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS live_scores (
+    prediction_id   INTEGER PRIMARY KEY REFERENCES predictions(id),
+    status          TEXT,           -- 1H, HT, 2H, ET, BT, P, SUSP, INT, LIVE
+    home_score      INTEGER,
+    away_score      INTEGER,
+    elapsed         INTEGER,        -- minutos jugados
+    updated_at      TEXT NOT NULL
+);
 """
 
 def get_conn():

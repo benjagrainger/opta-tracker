@@ -21,7 +21,7 @@ from apifootball import (
     get_fixtures_for_date_any,
     find_fixture,
     get_odds as af_get_odds,
-    get_result as af_get_result,
+    get_fixture_status,
 )
 from analyze import print_report
 from report import generate as generate_html
@@ -156,31 +156,102 @@ def scrape():
     generate_html()
 
 
+def _resolve_apifootball_id(conn, row):
+    """Busca y almacena el apifootball_id para predicciones que aún no lo tienen.
+    Retorna el ID encontrado o None."""
+    date_str = row["match_date"]
+    league_info = COMP_TO_LEAGUE.get(row["comp"])
+
+    if league_info:
+        lid, season = league_info
+        time.sleep(0.3)
+        fixtures = get_fixtures_for_date(lid, season, date_str)
+    else:
+        time.sleep(0.3)
+        fixtures = get_fixtures_for_date_any(date_str)
+        if fixtures:
+            print(f"    [!] Comp '{row['comp']}' sin mapeo — fallback por fecha: {len(fixtures)} fixtures")
+
+    fixture = find_fixture(fixtures, row["home"], row["away"], expected_date=date_str)
+    if not fixture:
+        return None
+
+    af_id = fixture["fixture"]["id"]
+    h_name = fixture["teams"]["home"]["name"]
+    a_name = fixture["teams"]["away"]["name"]
+    lg_name = fixture.get("league", {}).get("name", "")
+    af_date = fixture.get("fixture", {}).get("date", "")
+    af_time_utc = af_date[11:16] if len(af_date) >= 16 else None
+
+    conn.execute(
+        "UPDATE predictions SET apifootball_id=?, home_name=?, away_name=?, league_name=?"
+        + (", match_time_utc=?" if af_time_utc else "") + " WHERE id=?",
+        (af_id, h_name, a_name, lg_name) + ((af_time_utc,) if af_time_utc else ()) + (row["id"],)
+    )
+    print(f"  → Fixture resuelto: {row['home']} vs {row['away']} → apifootball_id={af_id}")
+    return af_id
+
+
 def update_results():
-    print(f"\n[{NOW}] Actualizando resultados...")
+    print(f"\n[{NOW}] Actualizando resultados y marcadores en vivo...")
     with get_conn() as conn:
+        # Partidos sin resultado: los que ya deberían haber comenzado (+ 1 día de margen para MLS etc.)
         pending = conn.execute("""
-            SELECT p.id, p.home, p.away, p.match_date, p.comp
+            SELECT p.id, p.home, p.away, p.match_date, p.match_time_utc, p.comp, p.apifootball_id
             FROM predictions p
             WHERE p.id NOT IN (SELECT prediction_id FROM results)
               AND p.match_date <= date('now', '+1 day')
+            ORDER BY p.match_date, p.match_time_utc
         """).fetchall()
 
-        updated = 0
+        updated = live_updated = 0
         for row in pending:
-            res = af_get_result(row["home"], row["away"], row["comp"], row["match_date"])
-            if res:
-                conn.execute(
-                    """INSERT OR REPLACE INTO results
-                       (prediction_id, home_score, away_score, outcome, updated_at)
-                       VALUES (?,?,?,?,?)""",
-                    (row["id"], res["home_score"], res["away_score"], res["outcome"], NOW)
-                )
-                print(f"  ✓ {row['home']} vs {row['away']} ({row['match_date']}) → "
-                      f"{res['home_score']}-{res['away_score']} [{res['outcome']}]")
-                updated += 1
+            af_id = row["apifootball_id"]
 
-    print(f"  {updated} resultado(s) nuevos guardados")
+            # Si no tenemos el ID de API Football, intentar resolverlo automáticamente
+            if not af_id:
+                af_id = _resolve_apifootball_id(conn, row)
+
+            if not af_id:
+                continue
+
+            time.sleep(0.3)
+            status_data = get_fixture_status(af_id)
+            if not status_data or not status_data.get("status"):
+                continue
+
+            status = status_data["status"]
+            hs     = status_data.get("home_score")
+            as_    = status_data.get("away_score")
+            elapsed = status_data.get("elapsed")
+
+            if status in ("FT", "AET", "PEN"):
+                # Partido terminado → guardar resultado y limpiar live_scores
+                if hs is not None and as_ is not None:
+                    outcome = "H" if hs > as_ else ("A" if hs < as_ else "D")
+                    conn.execute(
+                        """INSERT OR REPLACE INTO results
+                           (prediction_id, home_score, away_score, outcome, updated_at)
+                           VALUES (?,?,?,?,?)""",
+                        (row["id"], hs, as_, outcome, NOW)
+                    )
+                    conn.execute("DELETE FROM live_scores WHERE prediction_id=?", (row["id"],))
+                    print(f"  ✓ {row['home']} vs {row['away']} → {hs}-{as_} [{outcome}]")
+                    updated += 1
+
+            elif status in ("1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"):
+                # En juego → actualizar live_scores
+                conn.execute(
+                    """INSERT OR REPLACE INTO live_scores
+                       (prediction_id, status, home_score, away_score, elapsed, updated_at)
+                       VALUES (?,?,?,?,?,?)""",
+                    (row["id"], status, hs if hs is not None else 0,
+                     as_ if as_ is not None else 0, elapsed, NOW)
+                )
+                live_updated += 1
+            # NS (no iniciado) o desconocido → no hacer nada aún
+
+    print(f"  {updated} resultado(s) nuevos | {live_updated} partido(s) en vivo actualizados")
 
 
 def _print_pev_bets():

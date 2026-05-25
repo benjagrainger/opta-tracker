@@ -101,6 +101,26 @@
             font-size:.75em; color:var(--muted); background:var(--surface);
             border-top:1px solid var(--border2) }
 
+  /* ── LIVE SECTION ── */
+  .live-section { background:var(--surface); border-top:1px solid var(--border2);
+                  border-bottom:1px solid var(--border2); padding:16px 0 20px }
+  .live-header  { margin-bottom:14px }
+  .live-cards   { display:flex; gap:12px; flex-wrap:wrap }
+  .live-card    { background:var(--bg); border:1px solid var(--border); border-radius:10px;
+                  padding:14px 18px; min-width:210px; flex:1; max-width:320px }
+  .live-teams   { display:flex; align-items:center; justify-content:space-between;
+                  gap:8px; margin-bottom:10px }
+  .live-team    { font-size:.88em; font-weight:600; color:var(--text); flex:1 }
+  .live-team.away { text-align:right }
+  .live-score-num { font-size:1.35em; font-weight:800; color:var(--text);
+                     white-space:nowrap; text-align:center; flex-shrink:0 }
+  .live-footer  { display:flex; align-items:center; justify-content:space-between; gap:8px }
+  .live-badge   { font-size:.70em; font-weight:700; border-radius:4px; padding:2px 8px }
+  .live-badge-live    { color:#ef4444; background:rgba(239,68,68,.14) }
+  .live-badge-paused  { color:#f59e0b; background:rgba(245,158,11,.12) }
+  .live-badge-pending { color:#64748b; background:rgba(100,116,139,.10) }
+  .live-league  { font-size:.70em; color:var(--dim); text-align:right }
+
   /* ── HISTORY SUMMARY ── */
   .hist-summary { padding:16px 20px; background:var(--surface);
                   display:flex; gap:28px; flex-wrap:wrap; align-items:center;
@@ -113,7 +133,7 @@
   <div class="container">
     <div class="header-inner">
       <div class="header-title">Value Bets <span class="accent">·</span> Opta</div>
-      <div class="header-meta"><span class="dot-live"></span>25/05/2026 10:14 · 156 partidos analizados</div>
+      <div class="header-meta"><span class="dot-live"></span>25/05/2026 11:21 · 156 partidos analizados</div>
     </div>
   </div>
 </div>
@@ -130,6 +150,54 @@
   </div>
   <a href="history.html" class="stat-expand-hint">Ver historial →</a>
 </div></div>
+
+
+<div class="live-section">
+  <div class="container">
+    <div class="live-header">
+      <span class="section-label">3 partidos en curso</span>
+    </div>
+    <div class="live-cards">
+        <div class="live-card">
+          <div class="live-teams">
+            <span class="live-team">Nantes</span>
+            <span class="live-score-num">— – —</span>
+            <span class="live-team away">Toulouse</span>
+          </div>
+          <div class="live-footer">
+            <span class="live-badge live-badge-pending">⏳ Desde 15:00 hs CL</span>
+            <span class="live-league">Ligue 1</span>
+          </div>
+        </div>
+        <div class="live-card">
+          <div class="live-teams">
+            <span class="live-team">BOL</span>
+            <span class="live-score-num">— – —</span>
+            <span class="live-team away">STP</span>
+          </div>
+          <div class="live-footer">
+            <span class="live-badge live-badge-pending">⏳ Desde 08:00 hs CL</span>
+            <span class="live-league">LEO</span>
+          </div>
+        </div>
+        <div class="live-card">
+          <div class="live-teams">
+            <span class="live-team">Notts County</span>
+            <span class="live-score-num">2 – 0</span>
+            <span class="live-team away">Salford City</span>
+          </div>
+          <div class="live-footer">
+            <span class="live-badge live-badge-live">2ª parte · 58'</span>
+            <span class="live-league">League Two</span>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>
+<script>
+// Auto-recarga cada 2 minutos si hay algún partido en juego
+(function(){ setTimeout(function(){ location.reload(); }, 120000); })();
+</script>
 
 <div class="container" style="padding-bottom:60px">
 

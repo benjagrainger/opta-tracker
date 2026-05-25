@@ -274,6 +274,25 @@ def get_odds(fixture_id: int):
     return None
 
 
+def get_fixture_status(fixture_id: int):
+    """
+    Retorna el estado actual y marcador de un fixture.
+    status: NS / 1H / HT / 2H / ET / BT / P / SUSP / INT / FT / AET / PEN
+    Retorna None si la llamada falla.
+    """
+    data = _get(f"{BASE_URL}/fixtures?id={fixture_id}")
+    fixtures = data.get("response", [])
+    if not fixtures:
+        return None
+    f = fixtures[0]
+    return {
+        "status":      f.get("fixture", {}).get("status", {}).get("short"),
+        "home_score":  f.get("goals", {}).get("home"),
+        "away_score":  f.get("goals", {}).get("away"),
+        "elapsed":     f.get("fixture", {}).get("status", {}).get("elapsed"),
+    }
+
+
 def get_result(home: str, away: str, comp: str, match_date: str):
     """
     Search API Football for the result of home vs away in the given competition on match_date.
