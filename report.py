@@ -4,24 +4,27 @@ from pathlib import Path
 from db import get_conn
 
 
-def utc_to_chile(time_str, date_str=None):
-    """Convert 'HH:MM' UTC to Chile time.
+def utc_to_chile_dt(time_str, date_str):
+    """Convierte UTC (date_str YYYY-MM-DD, time_str HH:MM) → (chile_date, chile_time).
+    Maneja correctamente el cruce de medianoche (ej: 01:00 UTC = 21:00 del día anterior en Chile).
     Apr–Sep: CLT (UTC-4) · Oct–Mar: CLST (UTC-3)
-    date_str='YYYY-MM-DD' lets us use the match's month; falls back to today.
     """
-    if not time_str:
-        return ""
+    if not time_str or not date_str:
+        return date_str or "", ""
     try:
         h, m = map(int, time_str.split(":"))
-        month = int(date_str[5:7]) if date_str else datetime.now().month
-        offset = 4 if 4 <= month <= 9 else 3   # CLT vs CLST
-        t = timedelta(hours=h, minutes=m) - timedelta(hours=offset)
-        total = int(t.total_seconds())
-        if total < 0:
-            total += 86400
-        return f"{total // 3600:02d}:{(total % 3600) // 60:02d}"
+        base = datetime.strptime(date_str, "%Y-%m-%d")
+        offset = 4 if 4 <= base.month <= 9 else 3
+        dt_chile = base + timedelta(hours=h, minutes=m) - timedelta(hours=offset)
+        return dt_chile.strftime("%Y-%m-%d"), dt_chile.strftime("%H:%M")
     except Exception:
-        return time_str
+        return date_str, time_str
+
+
+def utc_to_chile(time_str, date_str=None):
+    """Wrapper legado: retorna solo la hora Chile. Usar utc_to_chile_dt cuando se necesite la fecha."""
+    _, t = utc_to_chile_dt(time_str, date_str or datetime.utcnow().strftime("%Y-%m-%d"))
+    return t
 
 OUTPUT         = Path(__file__).parent / "docs" / "index.html"
 HISTORY_OUTPUT = Path(__file__).parent / "docs" / "history.html"
@@ -232,11 +235,11 @@ def build_value_table(bets):
     rows = ""
     pev_count = 0
     for b in sorted_bets:
-        hora = utc_to_chile(b.get("match_time_utc"), b.get("match_date"))
+        chile_date, hora = utc_to_chile_dt(b.get("match_time_utc"), b.get("match_date"))
         hora_cell = (
-            f'{b["match_date"]}<br>'
+            f'{chile_date}<br>'
             f'<span style="color:#64748b;font-size:.82em">{hora} hs CL</span>'
-        ) if hora else b["match_date"]
+        ) if hora else (chile_date or b["match_date"])
 
         # Compute EVs to find best PEV side
         ev_vals = {}
@@ -338,8 +341,8 @@ def build_results_table(results):
             )
 
         score = f"{r['home_score']}-{r['away_score']}"
-        hora = utc_to_chile(r.get("match_time_utc"), r.get("match_date"))
-        hora_cell = f'{r["match_date"]}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else r["match_date"]
+        chile_date, hora = utc_to_chile_dt(r.get("match_time_utc"), r.get("match_date"))
+        hora_cell = f'{chile_date}<br><span style="color:#64748b;font-size:.82em">{hora} hs CL</span>' if hora else (chile_date or r["match_date"])
         rows += f"""
         <tr>
           <td>{r['home_display']}<br>{r['away_display']}</td>
@@ -389,28 +392,31 @@ def build_picks_cards(bets):
             picks.append({**b, "side": best_side, "ev": best_ev,
                           "odds": best_odds, "opta": best_opta})
 
+    # Sort por fecha UTC (match_date + match_time_utc) — orden cronológico correcto
     picks.sort(key=lambda x: (x["match_date"], x.get("match_time_utc") or "", -x["ev"]))
     if not picks:
         return '<p class="empty-state">No hay apuestas con ventaja en este momento.<br>Vuelve más tarde.</p>'
 
     side_label = {"L": "Local", "E": "Empate", "V": "Visitante"}
     cards = ""
-    today = datetime.now().strftime("%Y-%m-%d")
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    # "Hoy" y "Mañana" en fecha Chile (UTC-4 en abr-sep, UTC-3 en oct-mar)
+    now_utc = datetime.utcnow()
+    chile_today, _ = utc_to_chile_dt(now_utc.strftime("%H:%M"), now_utc.strftime("%Y-%m-%d"))
+    chile_tomorrow = (datetime.strptime(chile_today, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
     for p in picks:
-        hora = utc_to_chile(p.get("match_time_utc"), p.get("match_date"))
+        chile_date, hora = utc_to_chile_dt(p.get("match_time_utc"), p.get("match_date"))
 
-        # Date label
-        if p["match_date"] == today:
+        # Date label usando fecha Chile real
+        if chile_date == chile_today:
             date_label = "Hoy"
-        elif p["match_date"] == tomorrow:
+        elif chile_date == chile_tomorrow:
             date_label = "Mañana"
         else:
             try:
-                dt = datetime.strptime(p["match_date"], "%Y-%m-%d")
+                dt = datetime.strptime(chile_date, "%Y-%m-%d")
                 date_label = f"{dt.day} {dt.strftime('%b')}"
             except Exception:
-                date_label = p["match_date"]
+                date_label = chile_date
         hora_str = f"{date_label} · {hora} hs" if hora else date_label
 
         # Movement arrow (direction only, sin color)
