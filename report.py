@@ -153,9 +153,25 @@ def load_data():
                        COALESCE(p.away_name, p.away) AS away_display,
                        COALESCE(p.league_name, p.comp) AS league_display,
                        p.match_date, p.match_time_utc,
+                       p.prob_home, p.prob_draw, p.prob_away,
+                       ob.odds_home AS bet_odds_home,
+                       ob.odds_draw AS bet_odds_draw,
+                       ob.odds_away AS bet_odds_away,
                        l.status, l.home_score, l.away_score, l.elapsed, l.updated_at
                 FROM predictions p
                 LEFT JOIN live_scores l ON l.prediction_id = p.id
+                LEFT JOIN odds ob ON ob.id = (
+                    SELECT COALESCE(
+                        (SELECT id FROM odds
+                         WHERE prediction_id = p.id AND is_bet_snapshot = 1
+                           AND DATE(fetched_at) < p.match_date
+                         ORDER BY fetched_at DESC LIMIT 1),
+                        (SELECT id FROM odds
+                         WHERE prediction_id = p.id
+                           AND DATE(fetched_at) < p.match_date
+                         ORDER BY fetched_at DESC LIMIT 1)
+                    )
+                )
                 WHERE p.id NOT IN (SELECT prediction_id FROM results)
                   AND (
                     l.prediction_id IS NOT NULL
@@ -558,6 +574,27 @@ def build_live_section(live_matches):
             badge_html  = f'<span class="live-badge live-badge-pending">⏳ Desde {hora_str}</span>'
             score_html  = '— – —'
 
+        # Calcular apuesta con PEV a las 8pm Chile del día anterior
+        pev_html = ""
+        side_labels = {"L": "Local", "E": "Empate", "V": "Visit."}
+        best_ev, best_side, best_odds = -999, None, None
+        for side, opta, odds in [
+            ("L", m.get("prob_home"), m.get("bet_odds_home")),
+            ("E", m.get("prob_draw"),  m.get("bet_odds_draw")),
+            ("V", m.get("prob_away"),  m.get("bet_odds_away")),
+        ]:
+            if not opta or not odds or odds < 1.02 or odds > 25:
+                continue
+            ev = (opta / 100) * odds - 1
+            if ev > best_ev:
+                best_ev, best_side, best_odds = ev, side, odds
+        if best_side and best_ev > 0:
+            pev_html = (
+                f'<span class="live-pev">'
+                f'{side_labels[best_side]} ({best_odds:.2f})'
+                f'</span>'
+            )
+
         cards += f"""
         <div class="live-card">
           <div class="live-teams">
@@ -569,6 +606,7 @@ def build_live_section(live_matches):
             {badge_html}
             <span class="live-league">{m['league_display']}</span>
           </div>
+          {('<div class="live-bet">' + pev_html + '</div>') if pev_html else ''}
         </div>"""
 
     n = len(live_matches)
@@ -805,6 +843,8 @@ def generate():
   .live-badge-paused  {{ color:#f59e0b; background:rgba(245,158,11,.12) }}
   .live-badge-pending {{ color:#64748b; background:rgba(100,116,139,.10) }}
   .live-league  {{ font-size:.70em; color:var(--dim); text-align:right }}
+  .live-bet     {{ margin-top:8px; padding-top:8px; border-top:1px solid var(--border2) }}
+  .live-pev     {{ font-size:.75em; font-weight:700; color:var(--green) }}
 
   /* ── HISTORY SUMMARY ── */
   .hist-summary {{ padding:16px 20px; background:var(--surface);
