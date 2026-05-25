@@ -91,7 +91,7 @@ def load_data():
                      ORDER BY fetched_at DESC LIMIT 1)
                 )
             )
-            ORDER BY p.match_date DESC
+            ORDER BY p.match_date DESC, COALESCE(p.match_time_utc,'23:59') DESC
             LIMIT 100
         """).fetchall()
 
@@ -269,8 +269,12 @@ def build_value_table(bets):
     if not bets:
         return '<p style="color:#64748b;padding:20px">No hay partidos en el ticker. Espera al próximo scrape.</p>'
 
-    # Sort by date/time ascending (soonest first)
-    sorted_bets = sorted(bets, key=lambda b: (b["match_date"], b.get("match_time_utc") or "", b["home"]))
+    # Sort by Chile datetime ascending (soonest first)
+    # Usar hora Chile, no UTC, para que MLS nocturna quede en su día correcto
+    sorted_bets = sorted(bets, key=lambda b: (
+        *utc_to_chile_dt(b.get("match_time_utc"), b.get("match_date")),
+        b["home"]
+    ))
 
     rows = ""
     pev_count = 0
@@ -339,6 +343,12 @@ def build_results_table(results):
     """Builds results table with P&L for PEV bets locked at 8pm Chile odds."""
     if not results:
         return '<p style="color:#64748b;padding:20px">Aún no hay resultados registrados.</p>'
+
+    # Ordenar por hora Chile (más reciente primero) — evita que MLS nocturna
+    # (UTC mayo 24, Chile mayo 23) quede mezclada con partidos del día siguiente
+    results = sorted(results, key=lambda r: (
+        *utc_to_chile_dt(r.get("match_time_utc"), r.get("match_date")),
+    ), reverse=True)
 
     total_pl = 0.0
     total_bets = 0
