@@ -18,6 +18,7 @@ from sofascore import compute_implied, add_deltas
 from apifootball import (
     COMP_TO_LEAGUE,
     get_fixtures_for_date,
+    get_fixtures_for_date_any,
     find_fixture,
     get_odds as af_get_odds,
     get_result as af_get_result,
@@ -37,6 +38,8 @@ def scrape():
 
     # Cache API Football fixtures per (comp, date) to minimise API calls
     af_cache = {}
+    # Fallback cache: todos los fixtures por fecha (para comps desconocidas)
+    af_date_cache = {}
 
     saved = skipped = no_odds = 0
     with get_conn() as conn:
@@ -99,7 +102,13 @@ def scrape():
                         time.sleep(0.3)
                         af_cache[comp_key] = get_fixtures_for_date(lid, season, date_str)
                     else:
-                        af_cache[comp_key] = []
+                        # Competición no mapeada: buscar en todos los fixtures del día
+                        if date_str not in af_date_cache:
+                            time.sleep(0.3)
+                            af_date_cache[date_str] = get_fixtures_for_date_any(date_str)
+                            print(f"  [!] Comp '{m['comp']}' sin mapeo — fallback por fecha ({date_str}): "
+                                  f"{len(af_date_cache[date_str])} fixtures encontrados")
+                        af_cache[comp_key] = af_date_cache[date_str]
 
                 fixtures = af_cache.get(comp_key, [])
                 fixture = find_fixture(fixtures, m["home"], m["away"], expected_date=date_str)

@@ -46,7 +46,7 @@ def load_data():
                    of.odds_draw AS first_odds_draw,
                    of.odds_away AS first_odds_away
             FROM predictions p
-            JOIN odds o ON o.id = (SELECT MAX(id) FROM odds WHERE prediction_id = p.id)
+            LEFT JOIN odds o ON o.id = (SELECT MAX(id) FROM odds WHERE prediction_id = p.id)
             LEFT JOIN odds of ON of.id = (SELECT MIN(id) FROM odds WHERE prediction_id = p.id)
             WHERE p.id NOT IN (SELECT prediction_id FROM results)
               AND (p.match_date || ' ' || COALESCE(p.match_time_utc, '23:59')) > datetime('now')
@@ -255,6 +255,18 @@ def build_value_table(bets):
         best_side = max(ev_vals, key=ev_vals.get) if ev_vals else None
         if ev_vals:
             pev_count += 1
+
+        no_odds = not b.get("odds_home")
+        if no_odds:
+            pending_cell = '<td colspan="3" style="color:#64748b;font-style:italic;text-align:center">Cuotas pendientes</td>'
+            rows += f"""
+        <tr style="opacity:.6" data-pev="0">
+          <td>{b['home_display']}<br>{b['away_display']}</td>
+          <td>{comp_flag(b['comp'])} {b['league_display']}</td>
+          <td>{hora_cell}</td>
+          {pending_cell}
+        </tr>"""
+            continue
 
         cell_l = _ev_cell(b["prob_home"], b["odds_home"], b.get("first_odds_home"), best_side == "L")
         cell_e = _ev_cell(b["prob_draw"], b["odds_draw"], b.get("first_odds_draw"), best_side == "E")

@@ -201,6 +201,13 @@ def get_fixtures_for_date(league_id: int, season: int, date_str: str) -> list:
     return data.get("response", [])
 
 
+def get_fixtures_for_date_any(date_str: str) -> list:
+    """Returns ALL fixtures on a given date (sin filtro de liga).
+    Usado como fallback cuando el código de competición no está mapeado."""
+    data = _get(f"{BASE_URL}/fixtures?date={date_str}")
+    return data.get("response", [])
+
+
 def find_fixture(fixtures: list, home: str, away: str, expected_date: str = None):
     """
     Fuzzy-match Opta abbreviations to an API Football fixture.
@@ -271,13 +278,11 @@ def get_result(home: str, away: str, comp: str, match_date: str):
     """
     Search API Football for the result of home vs away in the given competition on match_date.
     Also checks match_date+1 to handle western hemisphere games that run past midnight UTC.
+    Falls back to searching all fixtures for the date when comp code is unknown.
     Returns {home_score, away_score, outcome} or None if not found / not finished.
     outcome: 'H' / 'D' / 'A'
     """
     league_info = COMP_TO_LEAGUE.get(comp)
-    if not league_info:
-        return None
-    league_id, season = league_info
 
     dates_to_check = [match_date]
     try:
@@ -288,7 +293,14 @@ def get_result(home: str, away: str, comp: str, match_date: str):
 
     for date_str in dates_to_check:
         time.sleep(0.3)  # be gentle with the API
-        fixtures = get_fixtures_for_date(league_id, season, date_str)
+        if league_info:
+            league_id, season = league_info
+            fixtures = get_fixtures_for_date(league_id, season, date_str)
+        else:
+            # Comp desconocida: buscar en todos los fixtures del día
+            fixtures = get_fixtures_for_date_any(date_str)
+            if fixtures:
+                print(f"    [apifootball] Comp '{comp}' sin mapeo — fallback a búsqueda por fecha ({date_str}): {len(fixtures)} fixtures")
         if not fixtures:
             continue
         fixture = find_fixture(fixtures, home, away)
