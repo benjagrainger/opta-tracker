@@ -261,8 +261,9 @@ def build_value_table(bets):
         cell_v = _ev_cell(b["prob_away"], b["odds_away"], b.get("first_odds_away"), best_side == "V")
 
         row_bg = ev_bg(ev_vals.get(best_side)) if best_side else ""
+        pev_attr = 'data-pev="1"' if ev_vals else 'data-pev="0"'
         rows += f"""
-        <tr style="{row_bg}">
+        <tr style="{row_bg}" {pev_attr}>
           <td>{b['home_display']}<br>{b['away_display']}</td>
           <td>{comp_flag(b['comp'])} {b['league_display']}</td>
           <td>{hora_cell}</td>
@@ -272,16 +273,8 @@ def build_value_table(bets):
         </tr>"""
 
     total = len(sorted_bets)
-    pev_note = (
-        f'<span style="color:#4ade80;font-weight:bold">{pev_count} con PEV ★</span>'
-        f' · <span style="color:#475569">{total - pev_count} sin valor</span>'
-    )
     return f"""
-    <div style="padding:10px 20px;background:#0f172a;border-bottom:1px solid #334155;
-                font-size:.82em;color:#64748b">
-      {total} partidos analizados · {pev_note}
-    </div>
-    <table>
+    <table id="analysis-table">
       <thead><tr>
         <th>Partido</th><th>Torneo</th><th>Fecha</th>
         <th>Local</th><th>Empate</th><th>Visitante</th>
@@ -567,14 +560,10 @@ def generate():
     bets, results, results_8am, results_kickoff, stats = load_data()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    stat_bar        = build_stat_bar(results)
-    picks_html      = build_picks_cards(bets)
-    analysis_html   = build_value_table(bets)
-    history_html    = build_results_table(results)
-    comparison_html = build_strategy_comparison(results, results_8am, results_kickoff)
+    stat_bar      = build_stat_bar(results)
+    analysis_html = build_value_table(bets)
 
-    # Count matches (not cells) with at least one PEV side
-    n_picks = sum(
+    n_pev = sum(
         1 for b in bets
         if any(
             opta and odds and 0 < (opta / 100) * odds - 1 <= 1.0
@@ -584,24 +573,6 @@ def generate():
                 ("V", b["prob_away"], b["odds_away"]),
             ]
         )
-    )
-
-    # Count results that had at least one PEV bet
-    n_results = sum(
-        1 for r in results
-        if any(
-            opta and odds and 0 < (opta / 100) * odds - 1 <= 1.0
-            for _, opta, odds in [
-                ("L", r["prob_home"], r["odds_home"]),
-                ("E", r["prob_draw"], r["odds_draw"]),
-                ("V", r["prob_away"], r["odds_away"]),
-            ]
-        )
-    )
-
-    picks_label = (
-        f"{n_picks} apuesta{'s' if n_picks != 1 else ''} con ventaja ahora"
-        if n_picks else "Sin apuestas con ventaja en este momento"
     )
 
     html = f"""<!DOCTYPE html>
@@ -654,36 +625,21 @@ def generate():
                        text-decoration:none }}
   .stat-expand-hint:hover {{ color:var(--text); border-color:var(--muted) }}
 
-  /* ── SECTION LABEL ── */
+  /* ── SECTION HEADER ── */
+  .section-header {{ display:flex; justify-content:space-between; align-items:center;
+                    margin:32px 0 14px; padding-bottom:8px;
+                    border-bottom:1px solid var(--border2) }}
   .section-label {{ font-size:.68em; font-weight:700; letter-spacing:.13em;
-                   text-transform:uppercase; color:var(--muted);
-                   margin:32px 0 14px; padding-bottom:8px;
-                   border-bottom:1px solid var(--border2) }}
+                   text-transform:uppercase; color:var(--muted) }}
+  .filter-btn {{ font-size:.75em; font-weight:600; padding:5px 12px; cursor:pointer;
+                background:transparent; color:var(--muted); border:1px solid var(--border);
+                border-radius:6px; transition:all .15s }}
+  .filter-btn:hover {{ color:var(--text); border-color:var(--muted) }}
+  .filter-btn.active {{ color:var(--green); border-color:var(--green) }}
 
-  /* ── PICK CARDS ── */
-  .picks-grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px }}
-  .pick-card {{
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; padding:16px 18px;
-    display:flex; flex-direction:column;
-    transition:border-color .15s, transform .1s;
-  }}
-  .pick-card:hover {{ border-color:var(--green); transform:translateY(-1px) }}
-  .pick-top {{ display:flex; justify-content:space-between; align-items:center;
-              font-size:.72em; color:var(--muted); margin-bottom:12px }}
-  .pick-teams {{ display:flex; flex-direction:column; gap:3px; margin-bottom:14px; flex:1 }}
-  .pick-home {{ font-size:.95em; font-weight:600 }}
-  .pick-away {{ font-size:.95em; font-weight:600 }}
-  .pick-footer {{ display:flex; justify-content:space-between; align-items:flex-end;
-                 padding-top:12px; border-top:1px solid var(--border2) }}
-  .pick-bet {{ display:flex; flex-direction:column; gap:2px }}
-  .pick-bet-label {{ font-size:.62em; text-transform:uppercase; letter-spacing:.1em; color:var(--dim) }}
-  .pick-bet-side {{ font-size:.9em; font-weight:700 }}
-  .pick-opta {{ font-size:.7em; color:var(--muted) }}
-  .pick-nums {{ display:flex; flex-direction:column; align-items:flex-end; gap:3px }}
-  .pick-ev {{ font-size:1.45em; font-weight:800; color:var(--green); line-height:1 }}
-  .pick-odds {{ font-size:.8em; color:var(--muted) }}
-  .empty-state {{ color:var(--muted); padding:28px 0; font-size:.9em; line-height:1.8 }}
+  /* ── ANALYSIS TABLE FILTER ── */
+  #analysis-table tbody tr[data-pev="0"] {{ display:none }}
+  #analysis-table.show-all tbody tr[data-pev="0"] {{ display:table-row }}
 
   /* ── DETAILS / COLLAPSIBLE ── */
   details {{
@@ -743,26 +699,33 @@ def generate():
 
 <div class="container" style="padding-bottom:60px">
 
-  <div class="section-label">{picks_label}</div>
-  {picks_html}
+  <div class="section-header">
+    <div class="section-label">{n_pev} con ventaja · {len(bets)} analizados</div>
+    <button id="filter-btn" class="filter-btn" onclick="toggleFilter()">Ver todos</button>
+  </div>
 
-  <div style="margin-top:32px"></div>
-
-  <details id="analisis">
-    <summary>Análisis técnico · {len(bets)} partidos próximos</summary>
-    <div class="details-inner">
-      {analysis_html}
-      <div class="legend">
-        <span>★ = apuesta recomendada del partido</span>
-        <span>·</span>
-        <span><span style="color:var(--green)">↑</span> cuota subió desde la primera detección (mejor)</span>
-        <span>·</span>
-        <span><span style="color:var(--red)">↓</span> cuota bajó (mercado lo corrigió)</span>
-      </div>
+  <div class="table-wrap">
+    {analysis_html}
+    <div class="legend">
+      <span>★ = mejor apuesta del partido</span>
+      <span>·</span>
+      <span><span style="color:var(--green)">↑</span> cuota subió (mejor)</span>
+      <span>·</span>
+      <span><span style="color:var(--red)">↓</span> cuota bajó (mercado lo corrigió)</span>
     </div>
-  </details>
+  </div>
 
 </div>
+
+<script>
+function toggleFilter() {{
+  const tbl = document.getElementById('analysis-table');
+  const btn = document.getElementById('filter-btn');
+  const showAll = tbl.classList.toggle('show-all');
+  btn.textContent = showAll ? 'Solo con ventaja' : 'Ver todos';
+  btn.classList.toggle('active', showAll);
+}}
+</script>
 </body>
 </html>"""
 

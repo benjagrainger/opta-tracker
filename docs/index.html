@@ -48,36 +48,21 @@
                        text-decoration:none }
   .stat-expand-hint:hover { color:var(--text); border-color:var(--muted) }
 
-  /* ── SECTION LABEL ── */
+  /* ── SECTION HEADER ── */
+  .section-header { display:flex; justify-content:space-between; align-items:center;
+                    margin:32px 0 14px; padding-bottom:8px;
+                    border-bottom:1px solid var(--border2) }
   .section-label { font-size:.68em; font-weight:700; letter-spacing:.13em;
-                   text-transform:uppercase; color:var(--muted);
-                   margin:32px 0 14px; padding-bottom:8px;
-                   border-bottom:1px solid var(--border2) }
+                   text-transform:uppercase; color:var(--muted) }
+  .filter-btn { font-size:.75em; font-weight:600; padding:5px 12px; cursor:pointer;
+                background:transparent; color:var(--muted); border:1px solid var(--border);
+                border-radius:6px; transition:all .15s }
+  .filter-btn:hover { color:var(--text); border-color:var(--muted) }
+  .filter-btn.active { color:var(--green); border-color:var(--green) }
 
-  /* ── PICK CARDS ── */
-  .picks-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px }
-  .pick-card {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; padding:16px 18px;
-    display:flex; flex-direction:column;
-    transition:border-color .15s, transform .1s;
-  }
-  .pick-card:hover { border-color:var(--green); transform:translateY(-1px) }
-  .pick-top { display:flex; justify-content:space-between; align-items:center;
-              font-size:.72em; color:var(--muted); margin-bottom:12px }
-  .pick-teams { display:flex; flex-direction:column; gap:3px; margin-bottom:14px; flex:1 }
-  .pick-home { font-size:.95em; font-weight:600 }
-  .pick-away { font-size:.95em; font-weight:600 }
-  .pick-footer { display:flex; justify-content:space-between; align-items:flex-end;
-                 padding-top:12px; border-top:1px solid var(--border2) }
-  .pick-bet { display:flex; flex-direction:column; gap:2px }
-  .pick-bet-label { font-size:.62em; text-transform:uppercase; letter-spacing:.1em; color:var(--dim) }
-  .pick-bet-side { font-size:.9em; font-weight:700 }
-  .pick-opta { font-size:.7em; color:var(--muted) }
-  .pick-nums { display:flex; flex-direction:column; align-items:flex-end; gap:3px }
-  .pick-ev { font-size:1.45em; font-weight:800; color:var(--green); line-height:1 }
-  .pick-odds { font-size:.8em; color:var(--muted) }
-  .empty-state { color:var(--muted); padding:28px 0; font-size:.9em; line-height:1.8 }
+  /* ── ANALYSIS TABLE FILTER ── */
+  #analysis-table tbody tr[data-pev="0"] { display:none }
+  #analysis-table.show-all tbody tr[data-pev="0"] { display:table-row }
 
   /* ── DETAILS / COLLAPSIBLE ── */
   details {
@@ -128,7 +113,7 @@
   <div class="container">
     <div class="header-inner">
       <div class="header-title">Value Bets <span class="accent">·</span> Opta</div>
-      <div class="header-meta"><span class="dot-live"></span>25/05/2026 10:00 · 155 partidos analizados</div>
+      <div class="header-meta"><span class="dot-live"></span>25/05/2026 10:05 · 156 partidos analizados</div>
     </div>
   </div>
 </div>
@@ -148,25 +133,32 @@
 
 <div class="container" style="padding-bottom:60px">
 
-  <div class="section-label">Sin apuestas con ventaja en este momento</div>
-  <p class="empty-state">No hay apuestas con ventaja en este momento.<br>Vuelve más tarde.</p>
+  <div class="section-header">
+    <div class="section-label">0 con ventaja · 0 analizados</div>
+    <button id="filter-btn" class="filter-btn" onclick="toggleFilter()">Ver todos</button>
+  </div>
 
-  <div style="margin-top:32px"></div>
-
-  <details id="analisis">
-    <summary>Análisis técnico · 0 partidos próximos</summary>
-    <div class="details-inner">
-      <p style="color:#64748b;padding:20px">No hay partidos en el ticker. Espera al próximo scrape.</p>
-      <div class="legend">
-        <span>★ = apuesta recomendada del partido</span>
-        <span>·</span>
-        <span><span style="color:var(--green)">↑</span> cuota subió desde la primera detección (mejor)</span>
-        <span>·</span>
-        <span><span style="color:var(--red)">↓</span> cuota bajó (mercado lo corrigió)</span>
-      </div>
+  <div class="table-wrap">
+    <p style="color:#64748b;padding:20px">No hay partidos en el ticker. Espera al próximo scrape.</p>
+    <div class="legend">
+      <span>★ = mejor apuesta del partido</span>
+      <span>·</span>
+      <span><span style="color:var(--green)">↑</span> cuota subió (mejor)</span>
+      <span>·</span>
+      <span><span style="color:var(--red)">↓</span> cuota bajó (mercado lo corrigió)</span>
     </div>
-  </details>
+  </div>
 
 </div>
+
+<script>
+function toggleFilter() {
+  const tbl = document.getElementById('analysis-table');
+  const btn = document.getElementById('filter-btn');
+  const showAll = tbl.classList.toggle('show-all');
+  btn.textContent = showAll ? 'Solo con ventaja' : 'Ver todos';
+  btn.classList.toggle('active', showAll);
+}
+</script>
 </body>
 </html>
