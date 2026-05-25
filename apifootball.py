@@ -51,6 +51,7 @@ COMP_TO_LEAGUE = {
     "UCL": (2,   2025),  # Champions League
     "UEL": (3,   2025),  # Europa League
     "ECL": (848, 2025),  # Conference League
+    "UCF": (848, 2025),  # Conference League (código alternativo Opta)
     "UNL": (5,   2024),  # Nations League
     # Others
     "BRAS":(71,  2026),  # Brasileirao
