@@ -347,6 +347,50 @@ def backfill_names():
     print(f"  backfill_names: {updated} registros actualizados")
 
 
+def refresh_odds():
+    """Actualiza cuotas solo para partidos que comienzan en las próximas 6 horas.
+    Se llama desde el job de resultados (cada 5 min) para tener odds frescas
+    cerca del kick-off, donde el mercado se mueve más.
+    Nunca marca is_bet_snapshot=1 (eso solo lo hace el job de scrape a las 23:00 UTC)."""
+    print(f"\n[{NOW}] Actualizando cuotas (partidos próximas 6h)...")
+    with get_conn() as conn:
+        upcoming = conn.execute("""
+            SELECT p.id, p.apifootball_id, p.prob_home, p.prob_draw, p.prob_away
+            FROM predictions p
+            WHERE p.id NOT IN (SELECT prediction_id FROM results)
+              AND p.id NOT IN (SELECT prediction_id FROM live_scores)
+              AND p.apifootball_id IS NOT NULL
+              AND (p.match_date || ' ' || COALESCE(p.match_time_utc,'23:59'))
+                  BETWEEN datetime('now') AND datetime('now', '+6 hours')
+        """).fetchall()
+
+        if not upcoming:
+            print("  Sin partidos próximos en las siguientes 6 horas.")
+            return
+
+        updated = 0
+        for row in upcoming:
+            raw = af_get_odds(row["apifootball_id"])
+            if not raw:
+                continue
+            d = compute_implied(raw)
+            d = add_deltas(d, row["prob_home"], row["prob_draw"], row["prob_away"])
+            conn.execute(
+                """INSERT INTO odds
+                   (prediction_id, fetched_at, odds_home, odds_draw, odds_away,
+                    impl_home, impl_draw, impl_away,
+                    delta_home, delta_draw, delta_away, is_bet_snapshot)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,0)""",
+                (row["id"], NOW,
+                 d["odds_home"], d["odds_draw"], d["odds_away"],
+                 d["impl_home"], d["impl_draw"], d["impl_away"],
+                 d["delta_home"], d["delta_draw"], d["delta_away"])
+            )
+            updated += 1
+
+    print(f"  {updated} cuota(s) actualizadas")
+
+
 if __name__ == "__main__":
     init_db()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
@@ -355,6 +399,9 @@ if __name__ == "__main__":
         scrape()
     if cmd in ("results", "all"):
         update_results()
+    if cmd == "refresh_odds":
+        refresh_odds()
+        generate_html()
     if cmd in ("report", "all"):
         print_report()
     if cmd == "backfill_names":
