@@ -244,33 +244,37 @@ def find_fixture(fixtures: list, home: str, away: str, expected_date: str = None
 
 def get_odds(fixture_id: int):
     """
-    Fetch 1X2 pre-match odds from API Football for a given fixture.
-    Tries all bookmakers until it finds one with Home/Draw/Away values.
+    Fetch best 1X2 pre-match odds from API Football for a given fixture.
+    Scans ALL bookmakers and returns the maximum odds available per side.
     Returns {odds_home, odds_draw, odds_away} or None.
     """
     time.sleep(0.3)
     data = _get(f"{BASE_URL}/odds?fixture={fixture_id}&bet=1")  # bet=1 = Match Winner
+    best = {"odds_home": None, "odds_draw": None, "odds_away": None}
     for entry in data.get("response", []):
         for bookmaker in entry.get("bookmakers", []):
             for bet in bookmaker.get("bets", []):
-                if bet.get("id") == 1:  # Match Winner / 1X2
-                    odds = {}
-                    for v in bet.get("values", []):
-                        name = v.get("value", "").lower()
-                        try:
-                            val = float(v.get("odd", 0))
-                        except (ValueError, TypeError):
-                            continue
-                        if val <= 1.0:
-                            continue  # invalid odd
-                        if name == "home":
-                            odds["odds_home"] = val
-                        elif name == "draw":
-                            odds["odds_draw"] = val
-                        elif name == "away":
-                            odds["odds_away"] = val
-                    if len(odds) == 3:
-                        return odds
+                if bet.get("id") != 1:
+                    continue
+                for v in bet.get("values", []):
+                    name = v.get("value", "").lower()
+                    try:
+                        val = float(v.get("odd", 0))
+                    except (ValueError, TypeError):
+                        continue
+                    if val < 1.02 or val > 25:
+                        continue  # invalid or corrupted
+                    if name == "home":
+                        if best["odds_home"] is None or val > best["odds_home"]:
+                            best["odds_home"] = val
+                    elif name == "draw":
+                        if best["odds_draw"] is None or val > best["odds_draw"]:
+                            best["odds_draw"] = val
+                    elif name == "away":
+                        if best["odds_away"] is None or val > best["odds_away"]:
+                            best["odds_away"] = val
+    if best["odds_home"] and best["odds_draw"] and best["odds_away"]:
+        return best
     return None
 
 

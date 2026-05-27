@@ -6,14 +6,22 @@ from db import get_conn
 
 def utc_to_chile_dt(time_str, date_str):
     """Convierte UTC (date_str YYYY-MM-DD, time_str HH:MM) → (chile_date, chile_time).
-    Maneja correctamente el cruce de medianoche (ej: 01:00 UTC = 21:00 del día anterior en Chile).
     Apr–Sep: CLT (UTC-4) · Oct–Mar: CLST (UTC-3)
+
+    Maneja el desfase de fecha Opta/Eastern: match_date viene en hora local del ticker
+    (Eastern ≈ Chile en verano), pero match_time_utc viene de API Football en UTC.
+    Para partidos nocturnos de América (21:00–23:59 local = 01:00–03:59 UTC),
+    el UTC ya cruzó la medianoche, por lo que la fecha UTC real es match_date + 1 día.
+    Heurística segura: si h < 12 UTC, el partido es de la noche anterior en Opta/Eastern.
     """
     if not time_str or not date_str:
         return date_str or "", ""
     try:
         h, m = map(int, time_str.split(":"))
         base = datetime.strptime(date_str, "%Y-%m-%d")
+        # Partidos nocturnos americanos: UTC h < 12 → base UTC es el día siguiente al Opta date
+        if h < 12:
+            base += timedelta(days=1)
         offset = 4 if 4 <= base.month <= 9 else 3
         dt_chile = base + timedelta(hours=h, minutes=m) - timedelta(hours=offset)
         return dt_chile.strftime("%Y-%m-%d"), dt_chile.strftime("%H:%M")
