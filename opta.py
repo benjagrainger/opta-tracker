@@ -11,7 +11,12 @@ def scrape_ticker() -> list:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(TICKER_URL, wait_until="networkidle", timeout=30000)
-        page.wait_for_selector("[class*='match-card_']", timeout=15000)
+        try:
+            page.wait_for_selector("[class*='match-card_']", timeout=15000)
+        except Exception:
+            # Ticker vacío: sin partidos próximos (fin de temporada o pausa internacional)
+            browser.close()
+            return []
 
         cards = page.query_selector_all("[class*='match-card_']")
         matches = []
