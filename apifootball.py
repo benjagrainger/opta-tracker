@@ -60,6 +60,9 @@ COMP_TO_LEAGUE = {
     "TUR": (203, 2025),  # Süper Lig
     "BEL": (144, 2025),  # Belgian Pro League
     "POR": (94,  2025),  # Portuguese Liga (alias)
+    # FIFA World Cup 2026
+    "WOC": (1,   2026),
+    "WC":  (1,   2026),
 }
 
 # Opta abbreviation → keyword in API Football team name (lowercase)
@@ -135,6 +138,29 @@ OPTA_ABBREV = {
     # Primeira Liga
     "BEN": "benfica",     "POR": "porto",       "SPO": "sporting",
     "BRA": "braga",       "GUI": "guimaraes",
+    # Selecciones nacionales (Mundial 2026 y otros torneos)
+    "CAN": "canada",      "BIH": "bosnia",      "QAT": "qatar",
+    "SUI": "switzerland", "CUW": "curacao",     "NED": "netherlands",
+    "JPN": "japan",       "CIV": "ivory",       "ECU": "ecuador",
+    "HAI": "haiti",       "PAR": "paraguay",    "USA": "usa",
+    "ARG": "argentina",   "BRA": "brazil",      "MAR": "morocco",
+    "ESP": "spain",       "ENG": "england",     "FRA": "france",
+    "POR": "portugal",    "MEX": "mexico",      "URU": "uruguay",
+    "COL": "colombia",    "PER": "peru",        "VEN": "venezuela",
+    "AUS": "australia",   "KOR": "korea",       "IRN": "iran",
+    "SAU": "saudi",       "CMR": "cameroon",    "SEN": "senegal",
+    "GHA": "ghana",       "NGA": "nigeria",     "TUN": "tunisia",
+    "EGY": "egypt",       "CRC": "costa rica",  "HON": "honduras",
+    "PAN": "panama",      "JAM": "jamaica",     "GER": "germany",
+    "ITA": "italy",       "BEL": "belgium",     "CRO": "croatia",
+    "SRB": "serbia",      "DEN": "denmark",     "SVN": "slovenia",
+    "ALB": "albania",     "HUN": "hungary",     "SVK": "slovakia",
+    "ROU": "romania",     "UKR": "ukraine",     "AUT": "austria",
+    "TUR": "turkey",      "SCO": "scotland",    "WAL": "wales",
+    "NIR": "northern ireland", "IRL": "republic of ireland",
+    "NOR": "norway",      "SWE": "sweden",      "FIN": "finland",
+    "POL": "poland",      "CZE": "czech",       "GRE": "greece",
+    "BOL": "bolivia",     "CHI": "chile",       "VEN": "venezuela",
     # Brasileirao
     "FLA": "flamengo",    "PAL": "palmeiras",   "SAO": "sao paulo",
     "COR": "corinthians", "GRE": "gremio",      "INT": "internacional",
